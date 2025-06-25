@@ -3,1163 +3,419 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Earn Money by Watching Ads - Figma Style</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>AdEarn Pro - Watch Ads & Earn</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Custom CSS for Figma-style aesthetics and dark theme */
         :root {
-            --primary-bg: #1A1A1A;
-            --secondary-bg: #2A2A2A;
-            --accent-color: #6366F1; /* Indigo for accent, can be changed */
-            --text-color: #F8F8F8;
-            --card-hover-shadow: rgba(99, 102, 241, 0.4); /* Accent color shadow */
+            --primary: #FFD700;
+            --primary-dark: #e5c100;
+            --secondary: #141414;
+            --dark: #0a0a0a;
+            --light: #f8f8f8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--primary-bg);
-            color: var(--text-color);
-            overflow-x: hidden;
-            min-height: 100vh;
+            background-color: var(--dark);
+            color: var(--light);
         }
-
-        /* Figma-style Card base */
-        .figma-card {
-            background-color: var(--secondary-bg);
-            border-radius: 1.5rem; /* More rounded */
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease-out;
-            border: 1px solid rgba(255, 255, 255, 0.08); /* Subtle border */
+        
+        /* App Container */
+        #app {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
         }
-
-        .figma-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 15px 40px var(--card-hover-shadow);
-        }
-
-        /* 3D Effect for menu items/cards on hover */
-        .figma-3d-hover {
-            transform-style: preserve-3d;
-            perspective: 1000px;
-            transition: transform 0.3s ease-out;
-        }
-
-        .figma-3d-hover:hover {
-            transform: rotateX(5deg) rotateY(5deg) scale(1.02);
-        }
-
-        /* Button styles */
-        .btn-primary {
-            background-color: var(--accent-color);
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 9999px; /* Fully rounded */
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
-        }
-        .btn-primary:hover {
-            background-color: #4F46E5; /* Darker indigo */
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5);
-        }
-
-        /* Input field styles */
-        .figma-input {
-            background-color: #3A3A3A;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-color);
-            padding: 0.75rem 1rem;
-            border-radius: 0.75rem;
-            width: 100%;
-        }
-        .figma-input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
-        }
-
-        /* Modal styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+        
+        /* Header */
+        .header {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
         }
-        .modal-overlay.open {
-            opacity: 1;
-            visibility: visible;
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
         }
-        .modal-content {
-            background-color: var(--secondary-bg);
-            padding: 2.5rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            max-width: 500px;
-            width: 90%;
-            transform: translateY(-20px);
-            opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-        .modal-overlay.open .modal-content {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        /* Sidebar Notifications */
-        .notification-sidebar {
-            position: fixed;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 500;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .notification-left { left: 1rem; }
-        .notification-right { right: 1rem; }
-
-        .notification-item {
-            background-color: var(--secondary-bg);
-            color: var(--text-color);
-            padding: 0.75rem 1rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        
+        .balance-container {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            animation: fadeInOut 8s forwards; /* Adjust timing as needed */
-            opacity: 0; /* Start hidden */
         }
-
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateX(20px); }
-            10% { opacity: 1; transform: translateX(0); }
-            90% { opacity: 1; transform: translateX(0); }
-            100% { opacity: 0; transform: translateX(-20px); display: none; }
+        
+        .balance {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-right: 15px;
+            font-weight: bold;
         }
-
-        /* Specific animation for left/right */
-        .notification-left .notification-item { animation: fadeInOutLeft 8s forwards; }
-        .notification-right .notification-item { animation: fadeInOutRight 8s forwards; }
-
-        @keyframes fadeInOutLeft {
-            0% { opacity: 0; transform: translateX(-50px); }
-            10% { opacity: 1; transform: translateX(0); }
-            90% { opacity: 1; transform: translateX(0); }
-            100% { opacity: 0; transform: translateX(-50px); display: none; }
+        
+        /* Main Content */
+        .content-section {
+            margin: 30px 0;
         }
-        @keyframes fadeInOutRight {
-            0% { opacity: 0; transform: translateX(50px); }
-            10% { opacity: 1; transform: translateX(0); }
-            90% { opacity: 1; transform: translateX(0); }
-            100% { opacity: 0; transform: translateX(50px); display: none; }
+        
+        .section-title {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: var(--primary);
         }
-
-
-        /* Hidden utility class */
-        .hidden { display: none; }
+        
+        /* Earnings Cards */
+        .earn-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: var(--secondary);
+            border-radius: 10px;
+            padding: 20px;
+            flex: 1 1 300px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-title i {
+            margin-right: 10px;
+            color: var(--primary);
+        }
+        
+        .card-amount {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .card-desc {
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+        
+        /* Withdrawal Options */
+        .withdrawal-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .option-card {
+            background: var(--secondary);
+            border-radius: 10px;
+            padding: 20px;
+            flex: 1 1 200px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .option-icon {
+            font-size: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .option-icon.paypal {
+            color: #009cde;
+        }
+        
+        .option-icon.usdt {
+            color: #26a17b;
+        }
+        
+        .option-icon.bitcoin {
+            color: #f7931a;
+        }
+        
+        .option-icon.bank {
+            color: #666;
+        }
+        
+        /* Recent Activity */
+        .activity-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .activity-box {
+            flex: 1 1 300px;
+            background: var(--secondary);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .activity-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .earn-activity {
+            color: #4caf50;
+        }
+        
+        .withdraw-activity {
+            color: #2196f3;
+        }
     </style>
-    <!-- Google Fonts - Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body class="selection:bg-indigo-600 selection:text-white">
-    <!-- Header -->
-    <header class="bg-gray-900 shadow-lg text-white py-4 px-6 flex justify-between items-center sticky top-0 z-50 rounded-b-xl">
-        <div class="text-3xl font-extrabold text-indigo-400 uppercase tracking-widest">
-            AdEarn
-        </div>
-        <div id="dashboard" class="flex items-center space-x-6">
-            <span class="text-xl font-semibold">Balance: <span id="userBalance" class="text-green-400">$0.00</span></span>
-            <button id="loginBtn" class="btn-primary">Login</button>
-            <button id="createAccountBtn" class="btn-primary bg-transparent border border-indigo-500 hover:bg-indigo-700">Create Account</button>
-            <button id="logoutBtn" class="btn-primary bg-red-600 hover:bg-red-700 hidden">Logout</button>
-        </div>
-    </header>
-
-    <!-- Main Content Area -->
-    <main class="container mx-auto px-4 py-16">
-        <!-- Hero Section - Placeholder, can be designed with a 3D watch image -->
-        <section id="hero" class="text-center py-16 bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl shadow-inner-xl mb-16">
-            <h1 class="text-6xl font-extrabold text-white mb-6 leading-tight">
-                Watch Ads. <span class="text-indigo-400">Earn Money.</span> <br> Simple & Secure.
-            </h1>
-            <p class="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
-                Join thousands of users earning real cash by completing simple tasks and watching ads from your home.
-            </p>
-            <div class="relative w-96 h-96 mx-auto mb-10 perspective-[1000px]">
-                <!-- Simple 3D Watch SVG representation -->
-                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="absolute inset-0 figma-3d-watch transition-transform duration-500 hover:rotate-y-10 hover:rotate-x-5" style="transform: rotateY(-15deg) rotateX(10deg);">
-                    <!-- Watch Face (circle) -->
-                    <circle cx="100" cy="100" r="80" fill="#3A3A3A" stroke="#5A5A5A" stroke-width="5" />
-                    <!-- Bezel (inner circle) -->
-                    <circle cx="100" cy="100" r="75" fill="#4A4A4A" />
-                    <!-- Screen (smaller circle) -->
-                    <circle cx="100" cy="100" r="60" fill="#2E2E2E" />
-                    <!-- Digital Display / Time placeholder -->
-                    <text x="100" y="105" font-family="Inter" font-size="24" fill="#6366F1" text-anchor="middle" font-weight="bold">10:30</text>
-                    <!-- Hour hand -->
-                    <rect x="97" y="60" width="6" height="40" fill="#F8F8F8" transform="rotate(30 100 100)" />
-                    <!-- Minute hand -->
-                    <rect x="98" y="50" width="4" height="50" fill="#F8F8F8" transform="rotate(180 100 100)" />
-                    <!-- Watch Strap 1 -->
-                    <rect x="70" y="170" width="60" height="30" fill="#5A5A5A" rx="5" ry="5" transform="rotate(5 100 185)"/>
-                    <rect x="70" y="0" width="60" height="30" fill="#5A5A5A" rx="5" ry="5" transform="rotate(-5 100 15)"/>
-                </svg>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">AdEarn Pro</div>
+            <div class="balance-container">
+                <div class="balance">Balance: $<span id="current-balance">0.00</span></div>
+                <button class="btn" id="login-btn">Login</button>
             </div>
-            <div class="flex flex-col sm:flex-row justify-center gap-4">
-                <button id="loginBtnHero" class="btn-primary text-xl">Login</button>
-                <button id="createAccountBtnHero" class="btn-primary bg-transparent border border-indigo-500 hover:bg-indigo-700 text-xl">Create Account</button>
-                <button id="continueAsGuestBtn" class="btn-primary bg-gray-700 hover:bg-gray-600 text-xl">Continue as Guest</button>
-            </div>
-        </section>
-
-        <!-- Main Menu Sections (visible after login/guest) -->
-        <section id="mainApp" class="grid grid-cols-1 md:grid-cols-3 gap-10 hidden">
-            <!-- Watch Ads Card -->
-            <div id="watchAdsCard" class="figma-card p-8 text-center figma-3d-hover cursor-pointer">
-                <i class="fas fa-play-circle text-6xl text-indigo-400 mb-4"></i>
-                <h2 class="text-3xl font-bold mb-3">Watch Ads & Earn</h2>
-                <p class="text-gray-400 mb-6">View sponsored content and get paid for your time.</p>
-                <div id="adCountdownSection" class="mb-4 text-center hidden">
-                    <p class="text-sm text-gray-400">Next ads available in:</p>
-                    <div class="text-indigo-400 font-bold text-2xl" id="adCountdown">00:00:00</div>
+        </header>
+        
+        <!-- Main Content -->
+        <main>
+            <!-- Earnings Section -->
+            <section class="content-section">
+                <h2 class="section-title">Earn Money</h2>
+                <div class="earn-cards">
+                    <div class="card">
+                        <h3 class="card-title"><i class="fas fa-ad"></i> Watch Ads</h3>
+                        <div class="card-amount">$1 - $5 per ad</div>
+                        <p class="card-desc">Watch short video ads and earn instantly. Limited to 10 ads per day.</p>
+                        <button class="btn" id="watch-ad-btn">Watch Ad</button>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title"><i class="fas fa-tasks"></i> Complete Tasks</h3>
+                        <div class="card-amount">$1 - $10 per task</div>
+                        <p class="card-desc">Simple tasks like surveys or app testing. Higher payouts available.</p>
+                        <button class="btn" id="task-btn">View Tasks</button>
+                    </div>
                 </div>
-                <button id="watchAdsBtn" class="btn-primary w-full">Start Watching</button>
-            </div>
-
-            <!-- Complete Task Card -->
-            <div id="completeTaskCard" class="figma-card p-8 text-center figma-3d-hover cursor-pointer">
-                <i class="fas fa-tasks text-6xl text-indigo-400 mb-4"></i>
-                <h2 class="text-3xl font-bold mb-3">Complete Tasks</h2>
-                <p class="text-gray-400 mb-6">Engage with various tasks to boost your earnings.</p>
-                <button id="completeTaskBtn" class="btn-primary w-full">View Tasks</button>
-            </div>
-
-            <!-- Withdrawal Card -->
-            <div id="withdrawalCard" class="figma-card p-8 text-center figma-3d-hover cursor-pointer">
-                <i class="fas fa-wallet text-6xl text-indigo-400 mb-4"></i>
-                <h2 class="text-3xl font-bold mb-3">Withdraw Funds</h2>
-                <p class="text-gray-400 mb-6">Easily cash out your earnings via multiple methods.</p>
-                <button id="withdrawBtn" class="btn-primary w-full">Withdraw Now</button>
-            </div>
-        </section>
-
-        <!-- Dynamic Content Area -->
-        <section id="dynamicContent" class="mt-16 hidden">
-            <!-- Content will be loaded here based on menu selection -->
-        </section>
-    </main>
-
-    <!-- Notification Sidebars -->
-    <div id="earnedNotifications" class="notification-sidebar notification-left"></div>
-    <div id="withdrawalNotifications" class="notification-sidebar notification-right"></div>
-
-    <!-- Modals -->
-
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 class="text-4xl font-bold text-white mb-8 text-center">Login to AdEarn</h3>
-            <form id="loginForm" class="space-y-6">
-                <div>
-                    <label for="loginEmail" class="block text-gray-300 text-lg font-medium mb-2">Email</label>
-                    <input type="email" id="loginEmail" class="figma-input" placeholder="your@email.com" required>
+            </section>
+            
+            <!-- Withdrawal Section -->
+            <section class="content-section">
+                <h2 class="section-title">Withdraw Earnings</h2>
+                <p style="margin-bottom: 20px; color: #aaa;">Minimum withdrawal: $10.00</p>
+                <div class="withdrawal-options">
+                    <div class="option-card" data-method="paypal">
+                        <div class="option-icon paypal"><i class="fab fa-paypal"></i></div>
+                        <h3>PayPal</h3>
+                        <p>Instant transfer</p>
+                    </div>
+                    
+                    <div class="option-card" data-method="usdt">
+                        <div class="option-icon usdt"><i class="fab fa-ethereum"></i></div>
+                        <h3>USDT (TRC20)</h3>
+                        <p>Crypto payments</p>
+                    </div>
+                    
+                    <div class="option-card" data-method="bitcoin">
+                        <div class="option-icon bitcoin"><i class="fab fa-bitcoin"></i></div>
+                        <h3>Bitcoin</h3>
+                        <p>Crypto payments</p>
+                    </div>
+                    
+                    <div class="option-card" data-method="bank">
+                        <div class="option-icon bank"><i class="fas fa-university"></i></div>
+                        <h3>Bank Transfer</h3>
+                        <p>1-3 business days</p>
+                    </div>
                 </div>
-                <div>
-                    <label for="loginPassword" class="block text-gray-300 text-lg font-medium mb-2">Password</label>
-                    <input type="password" id="loginPassword" class="figma-input" placeholder="********" required>
+            </section>
+            
+            <!-- Recent Activity -->
+            <section class="content-section">
+                <h2 class="section-title">Recent Activity</h2>
+                <div class="activity-container">
+                    <div class="activity-box">
+                        <h3 style="margin-bottom: 15px;">Recent Earnings</h3>
+                        <div id="earnings-activity">
+                            <div class="activity-item earn-activity">User765 earned $1,250.00</div>
+                            <div class="activity-item earn-activity">User432 earned $450.00</div>
+                            <div class="activity-item earn-activity">User908 earned $1,800.00</div>
+                            <div class="activity-item earn-activity">User123 earned $300.00</div>
+                            <div class="activity-item earn-activity">User654 earned $2,250.00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-box">
+                        <h3 style="margin-bottom: 15px;">Recent Withdrawals</h3>
+                        <div id="withdrawals-activity">
+                            <div class="activity-item withdraw-activity">User234 withdrew $500.00 (PayPal)</div>
+                            <div class="activity-item withdraw-activity">User876 withdrew $1,200.00 (Bitcoin)</div>
+                            <div class="activity-item withdraw-activity">User543 withdrew $750.00 (USDT)</div>
+                            <div class="activity-item withdraw-activity">User321 withdrew $2,500.00 (Bank)</div>
+                            <div class="activity-item withdraw-activity">User987 withdrew $1,500.00 (PayPal)</div>
+                        </div>
+                    </div>
                 </div>
-                <button type="submit" class="btn-primary w-full text-lg mt-6">Login</button>
-                <button type="button" id="closeLoginModal" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-full transition duration-300">Cancel</button>
-            </form>
-            <p class="text-center text-gray-400 mt-6">Don't have an account? <a href="#" id="switchToCreateAccount" class="text-indigo-400 hover:underline">Create One</a></p>
-        </div>
+            </section>
+        </main>
     </div>
 
-    <!-- Create Account Modal -->
-    <div id="createAccountModal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 class="text-4xl font-bold text-white mb-8 text-center">Create Your AdEarn Account</h3>
-            <form id="createAccountForm" class="space-y-6">
-                <div>
-                    <label for="createUsername" class="block text-gray-300 text-lg font-medium mb-2">Username</label>
-                    <input type="text" id="createUsername" class="figma-input" placeholder="Choose a username" required>
-                </div>
-                <div>
-                    <label for="createEmail" class="block text-gray-300 text-lg font-medium mb-2">Email</label>
-                    <input type="email" id="createEmail" class="figma-input" placeholder="your@email.com" required>
-                </div>
-                <div>
-                    <label for="createPassword" class="block text-gray-300 text-lg font-medium mb-2">Password</label>
-                    <input type="password" id="createPassword" class="figma-input" placeholder="Min 6 characters" required>
-                </div>
-                <button type="submit" class="btn-primary w-full text-lg mt-6">Create Account</button>
-                <button type="button" id="closeCreateAccountModal" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-full transition duration-300">Cancel</button>
-            </form>
-            <p class="text-center text-gray-400 mt-6">Already have an account? <a href="#" id="switchToLogin" class="text-indigo-400 hover:underline">Login Here</a></p>
-        </div>
-    </div>
-
-    <!-- Withdrawal Modal -->
-    <div id="withdrawalModal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 class="text-4xl font-bold text-white mb-8 text-center">Withdraw Your Earnings</h3>
-            <div class="text-center text-xl text-gray-300 mb-6">Your current balance: <span id="modalBalance" class="text-green-400 font-bold">$0.00</span></div>
-            <form id="withdrawalForm" class="space-y-6">
-                <div>
-                    <label for="withdrawalAmount" class="block text-gray-300 text-lg font-medium mb-2">Amount (USD)</label>
-                    <input type="number" id="withdrawalAmount" class="figma-input" placeholder="e.g., 50.00" min="5" step="0.01" required>
-                </div>
-                <div>
-                    <label for="withdrawalMethod" class="block text-gray-300 text-lg font-medium mb-2">Withdrawal Method</label>
-                    <select id="withdrawalMethod" class="figma-input" required>
-                        <option value="">Select a method</option>
-                        <option value="paypal">PayPal</option>
-                        <option value="usdt">USDT (Tether)</option>
-                        <option value="bitcoin">Bitcoin</option>
-                        <option value="bank">Bank Transfer</option>
-                    </select>
-                </div>
-
-                <!-- Method-specific fields -->
-                <div id="paypalFields" class="hidden space-y-4">
-                    <div>
-                        <label for="paypalEmail" class="block text-gray-300 text-lg font-medium mb-2">PayPal Email</label>
-                        <input type="email" id="paypalEmail" class="figma-input" placeholder="your@paypal.com">
-                    </div>
-                </div>
-
-                <div id="usdtFields" class="hidden space-y-4">
-                    <div>
-                        <label for="usdtAddress" class="block text-gray-300 text-lg font-medium mb-2">USDT Wallet Address (TRC20)</label>
-                        <input type="text" id="usdtAddress" class="figma-input" placeholder="Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-                    </div>
-                </div>
-
-                <div id="bitcoinFields" class="hidden space-y-4">
-                    <div>
-                        <label for="bitcoinAddress" class="block text-gray-300 text-lg font-medium mb-2">Bitcoin Wallet Address</label>
-                        <input type="text" id="bitcoinAddress" class="figma-input" placeholder="bc1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-                    </div>
-                </div>
-
-                <div id="bankFields" class="hidden space-y-4">
-                    <div>
-                        <label for="bankName" class="block text-gray-300 text-lg font-medium mb-2">Bank Name</label>
-                        <select id="bankName" class="figma-input">
-                            <option value="">Select Bank</option>
-                            <option value="hbl">Habib Bank Limited (HBL)</option>
-                            <option value="mcb">MCB Bank Limited</option>
-                            <option value="abl">Allied Bank Limited (ABL)</option>
-                            <option value="ubl">United Bank Limited (UBL)</option>
-                            <option value="meezan">Meezan Bank Limited</option>
-                            <option value="bafl">Bank Alfalah Limited (BAFL)</option>
-                            <option value="askari">Askari Bank Limited</option>
-                            <option value="jsbl">JS Bank Limited</option>
-                            <option value="bankalhabib">Bank Al Habib Limited</option>
-                            <option value="nrsp">NRSP Microfinance Bank</option>
-                            <option value="samb">Summit Bank Limited</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="accountHolderName" class="block text-gray-300 text-lg font-medium mb-2">Account Holder Name</label>
-                        <input type="text" id="accountHolderName" class="figma-input" placeholder="John Doe">
-                    </div>
-                    <div>
-                        <label for="accountNumber" class="block text-gray-300 text-lg font-medium mb-2">Account Number / IBAN</label>
-                        <input type="text" id="accountNumber" class="figma-input" placeholder="PKXX XXXX XXXX XXXX XXXX XXXX">
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-primary w-full text-lg mt-6">Submit Withdrawal Request</button>
-                <button type="button" id="closeWithdrawalModal" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-full transition duration-300">Cancel</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Message Box (for alerts) -->
-    <div id="messageBox" class="modal-overlay">
-        <div class="modal-content text-center">
-            <h3 id="messageBoxTitle" class="text-3xl font-bold mb-4 text-white"></h3>
-            <p id="messageBoxContent" class="text-gray-300 text-lg mb-6"></p>
-            <button id="closeMessageBox" class="btn-primary">OK</button>
-        </div>
-    </div>
-
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-
-        // Global Firebase variables
-        let app, db, auth, userId;
-        let currentUserBalance = 0;
-        let adCooldownEnds = 0; // Timestamp when ad cooldown ends
-        let adsWatchedInSession = 0;
-        const MAX_ADS_PER_12_HOURS = 5; // Example: user can watch 5 ads per 12 hours
-        const COOLDOWN_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
-
-        // UI Elements
-        const loginBtn = document.getElementById('loginBtn'); // Header login
-        const createAccountBtn = document.getElementById('createAccountBtn'); // Header create
-        const loginBtnHero = document.getElementById('loginBtnHero'); // Hero login
-        const createAccountBtnHero = document.getElementById('createAccountBtnHero'); // Hero create
-        const continueAsGuestBtn = document.getElementById('continueAsGuestBtn'); // New Guest button
-        const logoutBtn = document.getElementById('logoutBtn');
-        const mainApp = document.getElementById('mainApp');
-        const heroSection = document.getElementById('hero');
-        const userBalanceSpan = document.getElementById('userBalance');
-        const dynamicContent = document.getElementById('dynamicContent');
-        const watchAdsBtn = document.getElementById('watchAdsBtn');
-        const completeTaskBtn = document.getElementById('completeTaskBtn');
-        const withdrawBtn = document.getElementById('withdrawBtn');
-        // These are dynamically created, do not get their references globally
-        // const adCountdownSection = document.getElementById('adCountdownSection');
-        // const adCountdownSpan = document.getElementById('adCountdown');
-
-        // Modals
-        const loginModal = document.getElementById('loginModal');
-        const createAccountModal = document.getElementById('createAccountModal');
-        const withdrawalModal = document.getElementById('withdrawalModal');
-        const messageBox = document.getElementById('messageBox');
-        const messageBoxTitle = document.getElementById('messageBoxTitle');
-        const messageBoxContent = document.getElementById('messageBoxContent');
-
-        // Forms
-        const loginForm = document.getElementById('loginForm');
-        const createAccountForm = document.getElementById('createAccountForm');
-        const withdrawalForm = document.getElementById('withdrawalForm');
-
-        // Withdrawal fields
-        const withdrawalMethodSelect = document.getElementById('withdrawalMethod');
-        const paypalFields = document.getElementById('paypalFields');
-        const usdtFields = document.getElementById('usdtFields');
-        const bitcoinFields = document.getElementById('bitcoinFields');
-        const bankFields = document.getElementById('bankFields');
-        const modalBalanceSpan = document.getElementById('modalBalance');
-
-        // Notification Elements
-        const earnedNotificationsDiv = document.getElementById('earnedNotifications');
-        const withdrawalNotificationsDiv = document.getElementById('withdrawalNotifications');
-
-        // Ad Links (provided by user)
+    <!-- JavaScript -->
+    <script>
+        // Global variables
+        let balance = 0;
+        let adCooldown = false;
+        
+        // DOM Elements
+        const balanceDisplay = document.getElementById('current-balance');
+        const loginBtn = document.getElementById('login-btn');
+        const watchAdBtn = document.getElementById('watch-ad-btn');
+        const taskBtn = document.getElementById('task-btn');
+        
+        // Ad links
         const adLinks = [
-            "https://spendharassingwarmly.com/fvhypi3y?key=80981271a9dcafc8810d326e77a46d71",
+            "https://spendharassingwarmly.com/fvhypi3y?key=80981271a9dcafc8801d326e77a46d71",
             "https://spendharassingwarmly.com/t75wmytbb?key=310969957557de70b2985540d31a7958",
             "https://spendharassingwarmly.com/ymq7df2pms?key=f3519aaedb5f6a5f7fb946000fcacda3",
             "https://spendharassingwarmly.com/m4imbsw5q7?key=e57cfaa68be458b7f45e333ab052b13d"
         ];
-
-        // New State Variable to manage UI flow
-        let appState = 'unauthenticated'; // 'unauthenticated', 'guest', 'authenticated'
-
-
-        // --- Firebase Initialization and Authentication ---
-        const initializeFirebase = async () => {
-            try {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-
-                if (Object.keys(firebaseConfig).length === 0) {
-                    console.error("Firebase config is missing. Please ensure __firebase_config is provided.");
-                    showMessage('Error', 'Firebase configuration is missing. The app may not function correctly.', true);
-                    return;
-                }
-
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        await loadUserData(userId);
-                    } else {
-                        userId = null;
-                        console.log("No user logged in, setting to unauthenticated state.");
-                        updateUIState('unauthenticated');
-                    }
-                });
-
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                    console.log("Signed in with custom token.");
-                } else {
-                    updateUIState('unauthenticated'); // Ensure initial state is set
-                }
-
-            } catch (error) {
-                console.error("Error initializing Firebase or signing in:", error);
-                showMessage('Initialization Error', `Failed to initialize the app: ${error.message}`, true);
-            }
-        };
-
-        // --- User Data Management ---
-        const loadUserData = async (uid) => {
-            if (!db || !uid) {
-                console.warn("loadUserData called without db or uid.");
-                return;
-            }
-            const userDocRef = doc(db, `artifacts/${__app_id}/users/${uid}/user_data/profile`);
-
-            try {
-                const user = auth.currentUser;
-                // Default data for new profiles
-                const defaultUserData = {
-                    balance: 0,
-                    lastAdWatchTime: 0,
-                    adCooldownEnds: 0,
-                    adsWatchedInSession: 0,
-                    withdrawalHistory: []
-                };
-
-                // For any authenticated user (anonymous or otherwise), ensure a profile document exists.
-                // This resolves the "Authenticated non-anonymous user without profile data" warning
-                // by creating the doc if it's missing, or merging default values if it exists.
-                await setDoc(userDocRef, defaultUserData, { merge: true });
-                console.log("Ensured user profile document exists/updated with defaults for UID:", uid);
-
-                const docSnap = await getDoc(userDocRef);
-                let userData = docSnap.exists() ? docSnap.data() : defaultUserData;
-                console.log("User data retrieved:", userData);
-
-                currentUserBalance = userData.balance || 0;
-                adCooldownEnds = userData.adCooldownEnds || 0;
-                adsWatchedInSession = userData.adsWatchedInSession || 0;
-
-                updateBalanceDisplay();
-
-                // Determine appState based on whether this user has a *saved* profile (not just an anonymous UID)
-                if (user && user.isAnonymous && !docSnap.exists()) {
-                    // This is an anonymous user without a stored profile, means they are a guest
-                    updateUIState('guest');
-                } else {
-                    // This is a user with a stored profile (or freshly created), treat as authenticated
-                    updateUIState('authenticated');
-                }
-
-            } catch (e) {
-                console.error("Error loading/initializing user data:", e);
-                showMessage('Data Error', 'Could not load or initialize your user data. Please ensure Firebase permissions are set up correctly.', true);
-                updateUIState('unauthenticated'); // Fallback to unauthenticated
-            }
-        };
-
-        const updateUserData = async (data) => {
-            if (!db || !userId) return;
-
-            // Only update data if the user is considered 'authenticated' (has a profile doc)
-            const userDocRef = doc(db, `artifacts/${__app_id}/users/${userId}/user_data/profile`);
-            const docSnap = await getDoc(userDocRef); 
-
-            if (!docSnap.exists() && appState === 'guest') {
-                console.log("Attempted to save data for a guest user without a profile. Aborting save.");
-                return; 
-            }
-
-            try {
-                await setDoc(userDocRef, data, { merge: true });
-                console.log("User data updated:", data);
-            } catch (e) {
-                console.error("Error updating user data:", e);
-                showMessage('Save Error', 'Could not save your data. Please check your connection.', true);
-            }
-        };
-
-        const updateBalanceDisplay = () => {
-            userBalanceSpan.textContent = `$${currentUserBalance.toFixed(2)}`;
-        };
-
-        // --- UI State Management ---
-        const updateUIState = (newState) => {
-            appState = newState;
-            console.log("App State:", appState);
-
-            // Reset all visibility
-            heroSection.classList.add('hidden');
-            mainApp.classList.add('hidden');
-            loginBtn.classList.add('hidden'); // Header login button
-            createAccountBtn.classList.add('hidden'); // Header create button
-            loginBtnHero.classList.add('hidden'); // Hero login button
-            createAccountBtnHero.classList.add('hidden'); // Hero create button
-            continueAsGuestBtn.classList.add('hidden'); // Hero continue as guest button
-            logoutBtn.classList.add('hidden');
-
-            userBalanceSpan.textContent = '$0.00'; // Reset balance display visually
-
-            switch (appState) {
-                case 'unauthenticated':
-                    heroSection.classList.remove('hidden');
-                    loginBtn.classList.remove('hidden'); // Show header login
-                    createAccountBtn.classList.remove('hidden'); // Show header create
-                    loginBtnHero.classList.remove('hidden'); // Show hero login
-                    createAccountBtnHero.classList.remove('hidden'); // Show hero create
-                    continueAsGuestBtn.classList.remove('hidden'); // Show hero guest
-                    break;
-                case 'guest':
-                    mainApp.classList.remove('hidden');
-                    logoutBtn.classList.remove('hidden');
-                    logoutBtn.textContent = 'End Guest Session'; // Change text for guest
-                    userBalanceSpan.textContent = '$0.00 (Guest)'; // Indicate guest balance
-                    loginBtn.classList.remove('hidden'); // Allow guest to login/create account
-                    createAccountBtn.classList.remove('hidden'); // Allow guest to login/create account
-                    break;
-                case 'authenticated':
-                    mainApp.classList.remove('hidden');
-                    logoutBtn.classList.remove('hidden');
-                    logoutBtn.textContent = 'Logout'; // Regular logout text
-                    updateBalanceDisplay(); // Show actual balance
-                    break;
-            }
-        };
-
-        // --- Event Listeners for UI ---
-        // Header buttons
-        loginBtn.addEventListener('click', () => openModal(loginModal));
-        createAccountBtn.addEventListener('click', () => openModal(createAccountModal));
-        // Hero section buttons
-        loginBtnHero.addEventListener('click', () => openModal(loginModal));
-        createAccountBtnHero.addEventListener('click', () => openModal(createAccountModal));
-        continueAsGuestBtn.addEventListener('click', async () => {
-            try {
-                // Sign in anonymously to get a UID for the guest session
-                await signInAnonymously(auth);
-                // onAuthStateChanged will handle updating UI to 'guest' state
-            } catch (error) {
-                console.error("Error signing in anonymously:", error);
-                showMessage('Error', `Could not start guest session: ${error.message}`, true);
-            }
-        });
-
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                // onAuthStateChanged will handle updating UI to 'unauthenticated'
-                showMessage('Session Ended', 'Your session has ended.');
-            } catch (error) {
-                console.error("Error ending session:", error);
-                showMessage('Error', `Failed to end session: ${error.message}`, true);
-            }
-        });
-
-        // Close modals
-        document.getElementById('closeLoginModal').addEventListener('click', () => closeModal(loginModal));
-        document.getElementById('closeCreateAccountModal').addEventListener('click', () => closeModal(createAccountModal));
-        document.getElementById('closeWithdrawalModal').addEventListener('click', () => {
-            closeModal(withdrawalModal);
-            // Reset withdrawal method fields
-            paypalFields.classList.add('hidden');
-            usdtFields.classList.add('hidden');
-            bitcoinFields.classList.add('hidden');
-            bankFields.classList.add('hidden');
-            withdrawalForm.reset();
-        });
-        document.getElementById('closeMessageBox').addEventListener('click', () => closeModal(messageBox));
-
-        // Switch between login/create account modals
-        document.getElementById('switchToCreateAccount').addEventListener('click', (e) => {
-            e.preventDefault();
-            closeModal(loginModal);
-            openModal(createAccountModal);
-        });
-        document.getElementById('switchToLogin').addEventListener('click', (e) => {
-            e.preventDefault();
-            closeModal(createAccountModal);
-            openModal(loginModal);
-        });
-
-        // --- Form Submissions ---
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = loginEmail.value;
-            const password = loginPassword.value;
-            // Simplified for frontend demo: A real app would authenticate here.
-            // For this demo, we'll just simulate success and sign in anonymously if not already signed in.
-            // A real login would use signInWithEmailAndPassword.
-            try {
-                if (!auth.currentUser) {
-                    await signInAnonymously(auth); // Ensure we have a UID
-                }
-                // When "logging in" via the form, we treat this as transitioning to an 'authenticated' state.
-                // So, ensure their Firestore profile exists.
-                const userDocRef = doc(db, `artifacts/${__app_id}/users/${auth.currentUser.uid}/user_data/profile`);
-                await setDoc(userDocRef, { email: email, lastLogin: Date.now() }, { merge: true }); // Add email for demo
-                
-                closeModal(loginModal);
-                showMessage('Login Successful', 'You are now logged in! Enjoy earning.', false);
-                // loadUserData will be triggered by onAuthStateChanged after setDoc, which updates UI state
-            } catch (error) {
-                console.error("Login failed:", error);
-                showMessage('Login Failed', 'Invalid credentials or an error occurred.', true);
-            }
-        });
-
-        createAccountForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = createUsername.value;
-            const email = createEmail.value;
-            const password = createPassword.value;
-            // Simplified for frontend demo: A real app would register user here.
-            // For this demo, we'll just simulate success and sign in anonymously.
-            try {
-                if (!auth.currentUser) {
-                    await signInAnonymously(auth); // Create an anonymous user to get a UID
-                }
-                // Initialize user profile in Firestore using setDoc with merge: true
-                await setDoc(doc(db, `artifacts/${__app_id}/users/${auth.currentUser.uid}/user_data/profile`), {
-                    username: username,
-                    email: email,
-                    balance: 0,
-                    lastAdWatchTime: 0,
-                    adCooldownEnds: 0,
-                    adsWatchedInSession: 0,
-                    withdrawalHistory: []
-                }, { merge: true }); // Use merge: true for safe creation/update
-
-                closeModal(createAccountModal);
-                showMessage('Account Created!', 'Your account has been successfully created. Welcome to AdEarn!', false);
-                // loadUserData will be triggered by onAuthStateChanged after setDoc, which updates UI state
-            } catch (error) {
-                console.error("Account creation failed:", error);
-                showMessage('Creation Failed', `Failed to create account: ${error.message}`, true);
-            }
-        });
-
-        // Show/hide withdrawal fields based on method
-        withdrawalMethodSelect.addEventListener('change', () => {
-            const method = withdrawalMethodSelect.value;
-            paypalFields.classList.add('hidden');
-            usdtFields.classList.add('hidden');
-            bitcoinFields.classList.add('hidden');
-            bankFields.classList.add('hidden');
-
-            if (method === 'paypal') {
-                paypalFields.classList.remove('hidden');
-            } else if (method === 'usdt') {
-                usdtFields.classList.remove('hidden');
-            } else if (method === 'bitcoin') {
-                bitcoinFields.classList.remove('hidden');
-            } else if (method === 'bank') {
-                bankFields.classList.remove('hidden');
-            }
-        });
-
-        withdrawalForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const amount = parseFloat(document.getElementById('withdrawalAmount').value);
-            const method = withdrawalMethodSelect.value;
-
-            if (appState !== 'authenticated') {
-                 showMessage('Account Required', 'You need a registered account to withdraw funds.', true);
-                 return;
-            }
-
-            if (amount <= 0 || isNaN(amount)) {
-                showMessage('Invalid Amount', 'Please enter a valid withdrawal amount.', true);
-                return;
-            }
-            if (amount > currentUserBalance) {
-                showMessage('Insufficient Balance', `You only have $${currentUserBalance.toFixed(2)}.`, true);
-                return;
-            }
-
-            // Collect method-specific details
-            let details = {};
-            if (method === 'paypal') {
-                details.email = document.getElementById('paypalEmail').value;
-                if (!details.email) { showMessage('Missing Info', 'Please enter your PayPal email.', true); return; }
-            } else if (method === 'usdt') {
-                details.address = document.getElementById('usdtAddress').value;
-                if (!details.address) { showMessage('Missing Info', 'Please enter your USDT wallet address.', true); return; }
-            } else if (method === 'bitcoin') {
-                details.address = document.getElementById('bitcoinAddress').value;
-                if (!details.address) { showMessage('Missing Info', 'Please enter your Bitcoin wallet address.', true); return; }
-            } else if (method === 'bank') {
-                details.bankName = document.getElementById('bankName').value;
-                details.accountHolderName = document.getElementById('accountHolderName').value;
-                details.accountNumber = document.getElementById('accountNumber').value;
-                if (!details.bankName || !details.accountHolderName || !details.accountNumber) {
-                    showMessage('Missing Info', 'Please fill all bank transfer details.', true); return;
-                }
-            } else {
-                showMessage('Invalid Method', 'Please select a withdrawal method.', true); return;
-            }
-
-            try {
-                const newBalance = currentUserBalance - amount;
-                const withdrawalEntry = {
-                    amount: amount,
-                    method: method,
-                    details: details,
-                    timestamp: Date.now(),
-                    status: 'Pending'
-                };
-
-                // Get current withdrawal history, append new entry, then update
-                const userProfileDoc = await getDoc(doc(db, `artifacts/${__app_id}/users/${userId}/user_data/profile`));
-                const currentWithdrawalHistory = userProfileDoc.exists() ? userProfileDoc.data().withdrawalHistory || [] : [];
-                
-                await updateUserData({
-                    balance: newBalance,
-                    withdrawalHistory: [ ...currentWithdrawalHistory, withdrawalEntry]
-                });
-                currentUserBalance = newBalance;
-                updateBalanceDisplay();
-                closeModal(withdrawalModal);
-                showMessage('Withdrawal Submitted', `Your request for $${amount.toFixed(2)} via ${method} has been submitted. It will be processed soon!`);
-
-                // Trigger a simulated withdrawal notification
-                simulateWithdrawalNotification(Math.round(amount), userId);
-
-            } catch (error) {
-                console.error("Withdrawal failed:", error);
-                showMessage('Withdrawal Error', `Failed to process withdrawal: ${error.message}`, true);
-            }
-        });
-
-
-        // --- Core App Functionality ---
-        const loadWatchAdsContent = () => {
-            dynamicContent.classList.remove('hidden');
-            dynamicContent.innerHTML = `
-                <div class="figma-card p-8">
-                    <h3 class="text-4xl font-bold text-white mb-8 text-center">Watch Ads & Earn!</h3>
-                    <p class="text-gray-400 text-center mb-6">Click on an ad link below. After viewing, click 'Claim Reward' to earn. Only 1-5$ per ad.</p>
-                    <div id="adWatchArea" class="space-y-6">
-                        ${adLinks.map((link, index) => `
-                            <div class="bg-gray-800 p-6 rounded-xl flex items-center justify-between shadow-lg">
-                                <div>
-                                    <h4 class="text-xl font-semibold text-white mb-2">Ad #${index + 1}</h4>
-                                    <p class="text-gray-400 text-sm truncate">${link}</p>
-                                </div>
-                                <button class="btn-primary watch-ad-btn" data-link="${link}" data-ad-index="${index}">
-                                    Watch Ad
-                                </button>
-                                <button class="btn-primary bg-green-600 hover:bg-green-700 claim-ad-btn hidden" data-ad-index="${index}">
-                                    Claim Reward
-                                </button>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div id="adSessionMessage" class="text-center text-lg mt-8 text-red-400 font-semibold hidden">
-                        You have watched your maximum ads for this session. Please wait for the cooldown.
-                    </div>
-                </div>
-            `;
-            attachAdWatchListeners();
-            // Call these after dynamic content is loaded, and only for authenticated users
-            if (appState === 'authenticated') {
-                startAdCooldownTimer();
-                updateAdWatchButtons();
-            } else {
-                 // Ensure these are hidden if appState is not 'authenticated'
-                 // These elements are part of dynamicContent, so they should be selected after innerHTML is set
-                 const currentAdCountdownSection = document.getElementById('adCountdownSection');
-                 const currentAdSessionMessage = document.getElementById('adSessionMessage');
-                 if (currentAdCountdownSection) currentAdCountdownSection.classList.add('hidden');
-                 if (currentAdSessionMessage) currentAdSessionMessage.classList.add('hidden');
-            }
-        };
-
-        const attachAdWatchListeners = () => {
-            document.querySelectorAll('.watch-ad-btn').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    if (appState !== 'authenticated') { // Only allow if authenticated
-                        showMessage('Account Required', 'Please create an account to save your earnings and watch ads!', true);
-                        openModal(createAccountModal); // Prompt to create account
-                        return;
-                    }
-                    
-                    if (adCooldownEnds > Date.now() || adsWatchedInSession >= MAX_ADS_PER_12_HOURS) {
-                        showMessage('Cooldown Active', `You can only watch ${MAX_ADS_PER_12_HOURS} ads every 12 hours. Please wait.`, true);
-                        return;
-                    }
-
-                    const adLink = e.target.dataset.link;
-                    const adIndex = e.target.dataset.adIndex;
-                    window.open(adLink, '_blank'); // Open ad in new tab
-
-                    e.target.disabled = true;
-                    e.target.textContent = 'Watching...';
-
-                    // Simulate ad watching time
-                    setTimeout(() => {
-                        e.target.classList.add('hidden');
-                        document.querySelector(`.claim-ad-btn[data-ad-index="${adIndex}"]`).classList.remove('hidden');
-                    }, 5000); // Simulate 5 seconds of watching
+        
+        // Initialize
+        function init() {
+            updateBalance();
+            
+            // Event listeners
+            loginBtn.addEventListener('click', handleLogin);
+            watchAdBtn.addEventListener('click', handleAdWatch);
+            taskBtn.addEventListener('click', handleTask);
+            
+            // Withdrawal method selection
+            document.querySelectorAll('.option-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    handleWithdrawal(this.dataset.method);
                 });
             });
-
-            document.querySelectorAll('.claim-ad-btn').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    if (appState !== 'authenticated') { // Only allow if authenticated
-                        showMessage('Account Required', 'Please create an account to claim rewards!', true);
-                        openModal(createAccountModal); // Prompt to create account
-                        return;
-                    }
-
-                    const adIndex = e.target.dataset.adIndex;
-                    const earnedAmount = (Math.random() * 4 + 1).toFixed(2); // $1 to $5
-                    currentUserBalance += parseFloat(earnedAmount);
-                    adsWatchedInSession++;
-
-                    const now = Date.now();
-                    let updatedCooldownEnds = adCooldownEnds;
-
-                    // If a new session starts (first ad after cooldown or initial), set new cooldown
-                    if (adsWatchedInSession === 1 && now > adCooldownEnds) {
-                        updatedCooldownEnds = now + COOLDOWN_DURATION_MS;
-                    }
-
-                    await updateUserData({
-                        balance: currentUserBalance,
-                        lastAdWatchTime: now,
-                        adCooldownEnds: updatedCooldownEnds,
-                        adsWatchedInSession: adsWatchedInSession
-                    });
-                    updateBalanceDisplay();
-                    showMessage('Ad Reward!', `You earned $${earnedAmount}! Your balance is now $${currentUserBalance.toFixed(2)}.`);
-
-                    // Disable buttons for this ad and update others
-                    e.target.disabled = true;
-                    e.target.textContent = 'Claimed!';
-                    e.target.classList.add('bg-gray-500', 'cursor-not-allowed');
-                    e.target.classList.remove('bg-green-600', 'hover:bg-green-700');
-
-                    updateAdWatchButtons(); // Re-evaluate all buttons
-                    startAdCooldownTimer(); // Ensure timer is running/updated
-
-                    // Trigger a simulated earned notification
-                    simulateEarnedNotification(parseFloat(earnedAmount));
-                });
-            });
-        };
-
-        let adCountdownInterval = null;
-        const startAdCooldownTimer = () => {
-            clearInterval(adCountdownInterval); // Clear any existing timer
-
-            const updateCountdown = () => {
-                // Re-get element references here, as dynamicContent might be re-rendered
-                const currentAdCountdownSection = document.getElementById('adCountdownSection');
-                const currentAdCountdownSpan = document.getElementById('adCountdown');
-                const currentAdSessionMessage = document.getElementById('adSessionMessage');
-
-                // Only proceed if elements exist and user is authenticated
-                if (!currentAdCountdownSection || !currentAdCountdownSpan || !currentAdSessionMessage || appState !== 'authenticated') {
-                    clearInterval(adCountdownInterval);
-                    adCountdownInterval = null;
-                    return;
-                }
-
-                const now = Date.now();
-                if (now < adCooldownEnds) {
-                    const remaining = adCooldownEnds - now;
-                    const hours = Math.floor(remaining / (1000 * 60 * 60));
-                    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-                    currentAdCountdownSpan.textContent =
-                        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                    currentAdCountdownSection.classList.remove('hidden');
-                    currentAdSessionMessage.classList.remove('hidden');
-                } else {
-                    // Cooldown finished, reset adsWatchedInSession
-                    if (adsWatchedInSession > 0) { // Only reset if ads were watched in previous session
-                        updateUserData({
-                            adsWatchedInSession: 0,
-                            adCooldownEnds: 0 // Reset cooldown time
-                        });
-                        adsWatchedInSession = 0;
-                        adCooldownEnds = 0;
-                        showMessage('Ad Session Reset!', 'You can now watch ads again. Enjoy!');
-                    }
-                    currentAdCountdownSection.classList.add('hidden');
-                    currentAdSessionMessage.classList.add('hidden');
-                    updateAdWatchButtons(); // Re-enable buttons if applicable
-                    clearInterval(adCountdownInterval); // Stop timer once cooldown is over
-                    adCountdownInterval = null;
-                }
-            };
-
-            updateCountdown(); // Call immediately to set initial state
-            if (adCountdownInterval === null) { // Only set interval if not already running
-                 adCountdownInterval = setInterval(updateCountdown, 1000); // Update every second
-            }
-        };
-
-        const updateAdWatchButtons = () => {
-            const now = Date.now();
-            // Only consider 'canWatch' if authenticated
-            const canWatch = (appState === 'authenticated' && now >= adCooldownEnds && adsWatchedInSession < MAX_ADS_PER_12_HOURS);
-            const adWatchArea = document.getElementById('adWatchArea');
-            const adSessionMessage = document.getElementById('adSessionMessage');
-
-            if (adWatchArea) {
-                adWatchArea.querySelectorAll('.watch-ad-btn').forEach(button => {
-                    button.disabled = !canWatch;
-                    button.classList.toggle('bg-gray-500', !canWatch);
-                    button.classList.toggle('cursor-not-allowed', !canWatch);
-                    button.classList.toggle('btn-primary', canWatch);
-                    button.classList.remove('hidden'); // Ensure watch button is visible
-                    button.textContent = 'Watch Ad'; // Reset text
-                });
-                adWatchArea.querySelectorAll('.claim-ad-btn').forEach(button => {
-                    button.classList.add('hidden'); // Hide claim button initially
-                });
-
-                if (adSessionMessage) { // Check if element exists before manipulating
-                    if (!canWatch && appState === 'authenticated') { // Only show message if authenticated and cannot watch
-                        adSessionMessage.classList.remove('hidden');
-                    } else {
-                        adSessionMessage.classList.add('hidden');
-                    }
-                }
-            }
-        };
-
-
-        const loadCompleteTaskContent = () => {
-            dynamicContent.classList.remove('hidden');
-            dynamicContent.innerHTML = `
-                <div class="figma-card p-8">
-                    <h3 class="text-4xl font-bold text-white mb-8 text-center">Complete Exciting Tasks!</h3>
-                    <p class="text-gray-400 text-center mb-6">Choose a task, complete it, and claim your reward ($1 to $10).</p>
-                    <div class="space-y-6">
-                        <!-- Example Tasks -->
-                        <div class="bg-gray-800 p-6 rounded-xl flex items-center justify-between shadow-lg">
-                            <div>
-                                <h4 class="text-xl font-semibold text-white mb-2">Survey: Your Favorite Foods</h4>
-                                <p class="text-gray-400 text-sm">Share your culinary preferences for 5 minutes.</p>
-                            </div>
-                            <button class="btn-primary complete-task-btn" data-task-id="survey1">Complete Task</button>
-                        </div>
-                        <div class="bg-gray-800 p-6 rounded-xl flex items-center justify-between shadow-lg">
-                            <div>
-                                <h4 class="text-xl font-semibold text-white mb-2">App Install: Mobile Gaming Fun</h4>
-                                <p class="text-gray-400 text-sm">Install and open a new mobile game.</p>
-                            </div>
-                            <button class="btn-primary complete-task-btn" data-task-id="appinstall1">Complete Task</button>
-                        </div>
-                        <div class="bg-gray-800 p-6 rounded-xl flex items-center justify-between shadow-lg">
-                            <div>
-                                <h4 class="text-xl font-semibold text-white mb-2">Video Review: Tech Gadget</h4>
-                                <p class="text-gray-400 text-sm">Watch a short video and give your feedback.</p>
-                            </div>
-                            <button class="btn-primary complete-task-btn" data-task-id="videoreview1">Complete Task</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.querySelectorAll('.complete-task-btn').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    if (appState !== 'authenticated') { // Only allow if authenticated
-                        showMessage('Account Required', 'Please create an account to save your earnings from tasks!', true);
-                        openModal(createAccountModal); // Prompt to create account
-                        return;
-                    }
-                    e.target.disabled = true;
-                    e.target.textContent = 'Completing...';
-                    // Simulate task completion time
-                    setTimeout(async () => {
-                        const earnedAmount = (Math.random() * 9 + 1).toFixed(2); // $1 to $10
-                        currentUserBalance += parseFloat(earnedAmount);
-                        await updateUserData({ balance: currentUserBalance });
-                        updateBalanceDisplay();
-                        showMessage('Task Reward!', `You earned $${earnedAmount}! Your balance is now $${currentUserBalance.toFixed(2)}.`);
-                        e.target.textContent = 'Completed!';
-                        e.target.classList.add('bg-green-600', 'cursor-not-allowed');
-                        e.target.classList.remove('btn-primary');
-
-                        // Trigger a simulated earned notification
-                        simulateEarnedNotification(parseFloat(earnedAmount));
-
-                    }, 3000); // Simulate 3 seconds task completion
-                });
-            });
-        };
-
-        const loadWithdrawalContent = () => {
-            if (appState !== 'authenticated') { // Only allow if authenticated
-                showMessage('Account Required', 'You need a registered account to withdraw funds.', true);
-                openModal(createAccountModal); // Prompt to create account
+            
+            // Start notification system
+            startNotificationSystem();
+        }
+        
+        // Handle login
+        function handleLogin() {
+            alert('For demo purposes, you are automatically logged in as a guest user.');
+        }
+        
+        // Handle watching ads
+        function handleAdWatch() {
+            if (adCooldown) {
+                alert('You can watch ads again in 12 hours.');
                 return;
             }
-            modalBalanceSpan.textContent = `$${currentUserBalance.toFixed(2)}`;
-            openModal(withdrawalModal);
-        };
-
-        // --- Navigation ---
-        watchAdsBtn.addEventListener('click', loadWatchAdsContent);
-        completeTaskBtn.addEventListener('click', loadCompleteTaskContent);
-        withdrawBtn.addEventListener('click', loadWithdrawalContent);
-
-
-        // --- Live Notifications Simulation ---
-        const randomNames = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah", "Ivan", "Julia", "Kyle", "Lena", "Mike", "Nina", "Oscar", "Pamela"];
-        let notificationCounter = 0;
-
-        const showNotification = (type, name, amount) => {
-            const notificationDiv = document.createElement('div');
-            notificationDiv.classList.add('notification-item');
-            notificationDiv.style.order = notificationCounter++; // To ensure new items appear at the bottom
-
-            let icon, text;
-            if (type === 'earned') {
-                icon = '<i class="fas fa-money-bill-wave text-green-400"></i>';
-                text = `<span class="font-bold text-indigo-300">${name}</span> just earned <span class="text-green-400 font-bold">$${amount.toFixed(2)}</span>!`;
-            } else if (type === 'withdrawal') {
-                icon = '<i class="fas fa-hand-holding-usd text-blue-400"></i>';
-                text = `<span class="font-bold text-indigo-300">${name}</span> withdrew <span class="text-blue-400 font-bold">$${amount.toFixed(2)}</span>!`;
-            }
-
-            notificationDiv.innerHTML = `${icon} ${text}`;
-
-            const targetContainer = type === 'earned' ? earnedNotificationsDiv : withdrawalNotificationsDiv;
-            targetContainer.appendChild(notificationDiv);
-
-            // Remove after animation (adjust timing to match CSS animation)
+            
+            // Random reward ($1-$5)
+            const reward = (Math.random() * 4 + 1).toFixed(2);
+            balance += parseFloat(reward);
+            updateBalance();
+            
+            // Open random ad link
+            const randomAd = adLinks[Math.floor(Math.random() * adLinks.length)];
+            window.open(randomAd, '_blank');
+            
+            // Set cooldown
+            adCooldown = true;
             setTimeout(() => {
-                notificationDiv.remove();
-            }, 8000); // Corresponds to 8s animation
-        };
-
-        const simulateEarnedNotification = (fixedAmount = null) => {
-            const name = randomNames[Math.floor(Math.random() * randomNames.length)];
-            const amount = fixedAmount || (Math.random() * 2200 + 300); // $300 to $2500
-            showNotification('earned', name, amount);
-        };
-
-        const simulateWithdrawalNotification = (fixedAmount = null, currentUserId = null) => {
-            const name = randomNames[Math.floor(Math.random() * randomNames.length)];
-            const amount = fixedAmount || (Math.random() * 2000 + 500); // $500 to $2500
-            // Optionally, for a more "real" feel, use the current user's name if they just withdrew
-            if (currentUserId && auth.currentUser && auth.currentUser.uid === currentUserId) {
-                // In a real app, fetch the username from user data
-                // For this demo, just use a random name for simplicity
+                adCooldown = false;
+                alert('You can now watch ads again!');
+            }, 43200000); // 12 hours in milliseconds
+            
+            alert(`You earned $${reward} for watching an ad!`);
+        }
+        
+        // Handle completing tasks
+        function handleTask() {
+            // Random reward ($1-$10)
+            const reward = (Math.random() * 9 + 1).toFixed(2);
+            balance += parseFloat(reward);
+            updateBalance();
+            
+            alert(`You earned $${reward} for completing a task!`);
+        }
+        
+        // Handle withdrawal
+        function handleWithdrawal(method) {
+            if (balance < 10) {
+                alert(`Minimum withdrawal amount is $10.00. Your current balance is $${balance.toFixed(2)}`);
+                return;
             }
-            showNotification('withdrawal', name, amount);
-        };
-
-        // Start random notifications
-        setInterval(() => simulateEarnedNotification(), 10000); // Every 10 seconds
-        setInterval(() => simulateWithdrawalNotification(), 15000); // Every 15 seconds
-
-        // --- Initialize App ---
-        document.addEventListener('DOMContentLoaded', initializeFirebase);
-    </script>
-</body>
-</html>
+            
+            alert(`Processing $${balance.toFixed(2)} withdrawal to ${method.toUpperCase()}...`);
+            
+            // Reset balance
+            balance = 0;
+            updateBalance();
+            
+            // Add to withdrawal history
+            addWithdrawalActivity(balance.toFixed(2), method);
+        }
+        
+        // Update balance display
+        function updateBalance() {
+            balanceDisplay.textContent = balance.toFixed(2);
+        }
+        
+        // Notification system
+        function startNotificationSystem() {
+            // Random earning notifications (every 15-45 seconds)
+            setInterval(() => {
+                const amount = (Math.random() * 2200 + 300).toFixed(2);
+                addEarningActivity(amount);
+            }, Math.random() * 30000 + 15000);
+            
+            // Random withdrawal notifications (every 30-60 seconds)
+            setInterval(() => {
+                const methods = ['PayPal', 'USDT', 'Bitcoin', 'Bank'];
+                const method = methods[Math.floor(Math.random() * methods.length)];
+                const amount = (Math.random() * 2000 + 500).toFixed(2);
+                addWithdrawalActivity(amount, method);
+            }, Math.random() * 
