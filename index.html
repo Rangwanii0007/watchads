@@ -1,0 +1,806 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, addDoc, getDocs } from 'firebase/firestore';
+import { Home, Eye, DollarSign, Wallet, LogIn, UserPlus, LogOut, CheckCircle, XCircle, Info, Bitcoin, CreditCard, DollarSignIcon, Paypal } from 'lucide-react'; // Using Lucide React for icons
+
+// Initialize Firebase (global variables provided by the Canvas environment)
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// Initialize Firebase App
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Helper to get a user ID from the current user object
+const getUserId = (currentUser) => {
+    return currentUser?.uid; // Firebase currentUser.uid is always defined if a user is signed in
+};
+
+// Ad and Task Data
+const adLinks = [
+    "https://spendharassingwarmly.com/fvhypi3y?key=80981271a9dcafc8801d326e77a46d71",
+    "https://spendharassingwarmly.com/t75wmytbb?key=310969957557de70b2985540d31a7958",
+    "https://spendharassingwarmly.com/ymq7df2pms?key=f3519aaedb5f6a5f7fb946000fcacda3",
+    "https://spendharassingwarmly.com/m4imbsw5q7?key=e57cfaa68be458b7f45e333ab052b13d"
+];
+
+// Placeholder for bank options (you can expand this)
+const bankOptions = [
+    "Bank of America", "Chase Bank", "Wells Fargo", "Citibank", "HSBC",
+    "JPMorgan Chase", "Goldman Sachs", "Morgan Stanley", "PNC Bank", "TD Bank",
+    "Capital One", "U.S. Bank", "Truist", "BMO Harris Bank", "Fifth Third Bank",
+    "Citizens Financial Group", "KeyBank", "Regions Bank", "Discover Bank", "Ally Bank",
+    "Synchrony Bank", "Comerica Bank", "First Horizon Bank", "Huntington Bank", "Zions Bancorporation"
+];
+
+// Main App Component
+const App = () => {
+    const [currentPage, setCurrentPage] = useState('loading'); // 'loading', 'login', 'register', 'dashboard', etc.
+    const [user, setUser] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const [balance, setBalance] = useState(0);
+    const [lastAdWatchedTimestamp, setLastAdWatchedTimestamp] = useState(0);
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const [showRegisterModal, setShowRegisterModal] = useState(false);
+    const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+    const [notificationQueue, setNotificationQueue] = useState([]);
+    const [withdrawalNotificationQueue, setWithdrawalNotificationQueue] = useState([]);
+
+    // Firebase Authentication and Firestore Listener
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+                // User is signed in (either authenticated or anonymous)
+                setUser(currentUser);
+                const currentUserId = getUserId(currentUser);
+                setUserId(currentUserId);
+
+                // Listen to user data from Firestore
+                // Path for user data: artifacts/{appId}/users/{userId}/data/profile
+                const userDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/data/profile`);
+                const userSnapshotUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const userData = docSnap.data();
+                        setBalance(userData.balance || 0);
+                        setLastAdWatchedTimestamp(userData.lastAdWatchedTimestamp || 0);
+                    } else {
+                        // Create user profile if it doesn't exist for this user ID
+                        setDoc(userDocRef, { balance: 0, lastAdWatchedTimestamp: 0, createdAt: Date.now() });
+                    }
+                }, (error) => {
+                    console.error("Error fetching user data:", error);
+                });
+
+                setCurrentPage('dashboard');
+                return () => userSnapshotUnsubscribe(); // Cleanup Firestore listener
+            } else {
+                // No user is signed in. Attempt initial sign-in.
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        // If a custom token is provided (from canvas env), use it first.
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        // If no custom token, sign in anonymously to allow guest access.
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Error during initial authentication (custom token or anonymous):", error);
+                    // If initial sign-in fails, ensure user state is cleared and redirect to login page.
+                    setUser(null);
+                    setUserId(null);
+                    setBalance(0);
+                    setLastAdWatchedTimestamp(0);
+                    setCurrentPage('login'); // Show login/register options if auto-login fails
+                }
+            }
+        });
+        // Cleanup auth listener on component unmount
+        return () => unsubscribe();
+    }, []); // Empty dependency array ensures this runs once on mount
+
+    // Notification Effect
+    useEffect(() => {
+        const generateRandomNotification = () => {
+            const names = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Heidi", "Ivan", "Judy"];
+            const earnedAmount = (Math.random() * (2500 - 300) + 300).toFixed(2);
+            const withdrawalAmount = (Math.random() * (2500 - 500) + 500).toFixed(2);
+            const randomName = names[Math.floor(Math.random() * names.length)];
+
+            // Add earned notification
+            setNotificationQueue(prev => [...prev, {
+                id: Date.now(),
+                type: 'earned',
+                message: `${randomName} just earned $${earnedAmount}!`,
+                amount: earnedAmount,
+                name: randomName
+            }]);
+
+            // Add withdrawal notification (less frequent)
+            if (Math.random() > 0.5) { // 50% chance to show withdrawal notification
+                setWithdrawalNotificationQueue(prev => [...prev, {
+                    id: Date.now() + 1,
+                    type: 'withdrawal',
+                    message: `${randomName} withdrew $${withdrawalAmount}!`,
+                    amount: withdrawalAmount,
+                    name: randomName
+                }]);
+            }
+        };
+
+        // Clear old notifications
+        const cleanupNotifications = () => {
+            setNotificationQueue(prev => prev.filter(n => Date.now() - n.id < 5000)); // Keep for 5 seconds
+            setWithdrawalNotificationQueue(prev => prev.filter(n => Date.now() - n.id < 5000)); // Keep for 5 seconds
+        };
+
+        const intervalId = setInterval(() => {
+            generateRandomNotification();
+            cleanupNotifications();
+        }, 3000); // Generate every 3 seconds
+
+        return () => clearInterval(intervalId);
+    }, []);
+
+    const updateBalance = async (amount) => {
+        if (!userId) {
+            console.error("User not authenticated.");
+            // Ideally, show a message to the user that they need to be logged in.
+            return;
+        }
+        const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/data/profile`);
+        try {
+            await updateDoc(userDocRef, {
+                balance: balance + amount,
+                lastAdWatchedTimestamp: Date.now() // Update timestamp on any ad/task watch
+            });
+            setBalance(prev => prev + amount);
+            setLastAdWatchedTimestamp(Date.now());
+        } catch (e) {
+            console.error("Error updating document: ", e);
+        }
+    };
+
+    const handleWatchAd = async () => {
+        const cooldownPeriod = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+        if (Date.now() - lastAdWatchedTimestamp < cooldownPeriod) {
+            const remainingTime = lastAdWatchedTimestamp + cooldownPeriod - Date.now();
+            const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+            const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+            alert(`You can watch ads again in ${hours}h ${minutes}m ${seconds}s.`); // Using alert for simplicity, a modal would be better
+            return;
+        }
+
+        const earnings = parseFloat((Math.random() * (5 - 1) + 1).toFixed(2)); // $1-$5
+        await updateBalance(earnings);
+        alert(`You earned $${earnings} for watching an ad!`); // Using alert for simplicity
+        // Open one of the ad links in a new tab
+        const randomAdLink = adLinks[Math.floor(Math.random() * adLinks.length)];
+        window.open(randomAdLink, '_blank');
+    };
+
+    const handleCompleteTask = async () => {
+        const cooldownPeriod = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+        if (Date.now() - lastAdWatchedTimestamp < cooldownPeriod) {
+            const remainingTime = lastAdWatchedTimestamp + cooldownPeriod - Date.now();
+            const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+            const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+            alert(`You can complete tasks again in ${hours}h ${minutes}m ${seconds}s.`); // Using alert for simplicity
+            return;
+        }
+
+        const earnings = parseFloat((Math.random() * (10 - 1) + 1).toFixed(2)); // $1-$10
+        await updateBalance(earnings);
+        alert(`You earned $${earnings} for completing a task!`); // Using alert for simplicity
+        // Open one of the ad links in a new tab (simulating a task)
+        const randomAdLink = adLinks[Math.floor(Math.random() * adLinks.length)];
+        window.open(randomAdLink, '_blank');
+    };
+
+    // Modals for Login, Register, Withdrawal
+    const LoginModal = () => {
+        const [email, setEmail] = useState('');
+        const [password, setPassword] = useState('');
+        const [error, setError] = useState('');
+
+        const handleLogin = async (e) => {
+            e.preventDefault();
+            setError('');
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                setShowLoginModal(false);
+            } catch (err) {
+                setError(err.message);
+            }
+        };
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                <div className="bg-gradient-to-br from-purple-700 to-indigo-900 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-purple-500 transform transition-all duration-300 scale-100 opacity-100 animate-slideUp">
+                    <h2 className="text-3xl font-bold text-white text-center mb-6 drop-shadow-lg">Login to Your Account</h2>
+                    <form onSubmit={handleLogin} className="space-y-6">
+                        <div>
+                            <label className="block text-white text-lg font-medium mb-2" htmlFor="email">Email</label>
+                            <input
+                                type="email"
+                                id="email"
+                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-purple-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-purple-300 transition duration-300"
+                                placeholder="your@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-white text-lg font-medium mb-2" htmlFor="password">Password</label>
+                            <input
+                                type="password"
+                                id="password"
+                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-purple-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-purple-300 transition duration-300"
+                                placeholder="********"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+                        {error && <p className="text-red-300 text-sm text-center">{error}</p>}
+                        <button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-pink-500 to-red-600 text-white font-bold py-3 px-6 rounded-xl hover:from-pink-600 hover:to-red-700 transition duration-300 shadow-lg transform hover:scale-105"
+                        >
+                            <LogIn className="inline-block mr-2" size={20} /> Login
+                        </button>
+                    </form>
+                    <p className="text-center text-white text-sm mt-6">
+                        Don't have an account?{' '}
+                        <button
+                            onClick={() => { setShowLoginModal(false); setShowRegisterModal(true); }}
+                            className="text-purple-300 hover:text-purple-200 font-semibold transition duration-300"
+                        >
+                            Register here
+                        </button>
+                    </p>
+                    <button
+                        onClick={() => setShowLoginModal(false)}
+                        className="absolute top-4 right-4 text-white hover:text-gray-200 text-2xl"
+                    >
+                        &times;
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
+    const RegisterModal = () => {
+        const [email, setEmail] = useState('');
+        const [password, setPassword] = useState('');
+        const [error, setError] = useState('');
+
+        const handleRegister = async (e) => {
+            e.preventDefault();
+            setError('');
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                setShowRegisterModal(false);
+            } catch (err) {
+                setError(err.message);
+            }
+        };
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                <div className="bg-gradient-to-br from-purple-700 to-indigo-900 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-purple-500 transform transition-all duration-300 scale-100 opacity-100 animate-slideUp">
+                    <h2 className="text-3xl font-bold text-white text-center mb-6 drop-shadow-lg">Create New Account</h2>
+                    <form onSubmit={handleRegister} className="space-y-6">
+                        <div>
+                            <label className="block text-white text-lg font-medium mb-2" htmlFor="reg-email">Email</label>
+                            <input
+                                type="email"
+                                id="reg-email"
+                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-purple-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-purple-300 transition duration-300"
+                                placeholder="your@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-white text-lg font-medium mb-2" htmlFor="reg-password">Password</label>
+                            <input
+                                type="password"
+                                id="reg-password"
+                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-purple-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-purple-300 transition duration-300"
+                                placeholder="Minimum 6 characters"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                minLength="6"
+                                required
+                            />
+                        </div>
+                        {error && <p className="text-red-300 text-sm text-center">{error}</p>}
+                        <button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white font-bold py-3 px-6 rounded-xl hover:from-green-600 hover:to-teal-700 transition duration-300 shadow-lg transform hover:scale-105"
+                        >
+                            <UserPlus className="inline-block mr-2" size={20} /> Register
+                        </button>
+                    </form>
+                    <p className="text-center text-white text-sm mt-6">
+                        Already have an account?{' '}
+                        <button
+                            onClick={() => { setShowRegisterModal(false); setShowLoginModal(true); }}
+                            className="text-purple-300 hover:text-purple-200 font-semibold transition duration-300"
+                        >
+                            Login here
+                        </button>
+                    </p>
+                    <button
+                        onClick={() => setShowRegisterModal(false)}
+                        className="absolute top-4 right-4 text-white hover:text-gray-200 text-2xl"
+                    >
+                        &times;
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
+    const WithdrawalModal = () => {
+        const [amount, setAmount] = useState('');
+        const [method, setMethod] = useState('paypal');
+        const [paypalEmail, setPaypalEmail] = useState('');
+        const [usdtAddress, setUsdtAddress] = useState('');
+        const [bitcoinAddress, setBitcoinAddress] = useState('');
+        const [bankName, setBankName] = useState('');
+        const [accountNumber, setAccountNumber] = useState('');
+        const [accountHolderName, setAccountHolderName] = useState('');
+        const [successMessage, setSuccessMessage] = useState('');
+        const [errorMessage, setErrorMessage] = useState('');
+
+        const handleWithdrawal = async (e) => {
+            e.preventDefault();
+            setSuccessMessage('');
+            setErrorMessage('');
+
+            const withdrawalAmount = parseFloat(amount);
+
+            if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
+                setErrorMessage("Please enter a valid amount.");
+                return;
+            }
+
+            if (withdrawalAmount > balance) {
+                setErrorMessage("Insufficient balance.");
+                return;
+            }
+
+            // Simulate withdrawal process
+            try {
+                if (!userId) throw new Error("User not authenticated.");
+
+                // Deduct balance from Firestore
+                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/data/profile`);
+                await updateDoc(userDocRef, {
+                    balance: balance - withdrawalAmount
+                });
+                setBalance(balance - withdrawalAmount);
+
+                // Log withdrawal request (optional, for backend tracking)
+                const withdrawalCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/data/withdrawals`);
+                await addDoc(withdrawalCollectionRef, {
+                    userId: userId,
+                    amount: withdrawalAmount,
+                    method: method,
+                    details: {
+                        paypalEmail, usdtAddress, bitcoinAddress, bankName, accountNumber, accountHolderName
+                    },
+                    timestamp: Date.now(),
+                    status: 'pending'
+                });
+
+                setSuccessMessage(`Withdrawal of $${withdrawalAmount} via ${method} requested successfully! Please allow 24-48 hours for processing.`);
+                setAmount('');
+                setPaypalEmail('');
+                setUsdtAddress('');
+                setBitcoinAddress('');
+                setBankName('');
+                setAccountNumber('');
+                setAccountHolderName('');
+
+            } catch (error) {
+                setErrorMessage(`Withdrawal failed: ${error.message}`);
+                console.error("Withdrawal error:", error);
+            }
+        };
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                <div className="bg-gradient-to-br from-teal-700 to-cyan-900 p-8 rounded-2xl shadow-2xl w-full max-w-lg border border-teal-500 transform transition-all duration-300 scale-100 opacity-100 animate-slideUp">
+                    <h2 className="text-3xl font-bold text-white text-center mb-6 drop-shadow-lg">Withdraw Funds</h2>
+                    <form onSubmit={handleWithdrawal} className="space-y-6">
+                        <div>
+                            <label className="block text-white text-lg font-medium mb-2" htmlFor="withdraw-amount">Amount ($)</label>
+                            <input
+                                type="number"
+                                id="withdraw-amount"
+                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
+                                placeholder="e.g., 50.00"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                min="0.01"
+                                step="0.01"
+                                required
+                            />
+                            <p className="text-white text-sm mt-2">Current Balance: ${balance.toFixed(2)}</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-white text-lg font-medium mb-2" htmlFor="withdrawal-method">Withdrawal Method</label>
+                            <select
+                                id="withdrawal-method"
+                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
+                                value={method}
+                                onChange={(e) => setMethod(e.target.value)}
+                            >
+                                <option value="paypal" className="bg-gray-800 text-white">PayPal</option>
+                                <option value="usdt" className="bg-gray-800 text-white">USDT (TRC-20)</option>
+                                <option value="bitcoin" className="bg-gray-800 text-white">Bitcoin</option>
+                                <option value="bank" className="bg-gray-800 text-white">Bank Transfer</option>
+                            </select>
+                        </div>
+
+                        {method === 'paypal' && (
+                            <div>
+                                <label className="block text-white text-lg font-medium mb-2" htmlFor="paypal-email">PayPal Email</label>
+                                <input
+                                    type="email"
+                                    id="paypal-email"
+                                    className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
+                                    placeholder="your@paypal.com"
+                                    value={paypalEmail}
+                                    onChange={(e) => setPaypalEmail(e.target.value)}
+                                    required={method === 'paypal'}
+                                />
+                            </div>
+                        )}
+
+                        {method === 'usdt' && (
+                            <div>
+                                <label className="block text-white text-lg font-medium mb-2" htmlFor="usdt-address">USDT (TRC-20) Address</label>
+                                <input
+                                    type="text"
+                                    id="usdt-address"
+                                    className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
+                                    placeholder="TRC-20 wallet address"
+                                    value={usdtAddress}
+                                    onChange={(e) => setUsdtAddress(e.target.value)}
+                                    required={method === 'usdt'}
+                                />
+                            </div>
+                        )}
+
+                        {method === 'bitcoin' && (
+                            <div>
+                                <label className="block text-white text-lg font-medium mb-2" htmlFor="bitcoin-address">Bitcoin Address</label>
+                                <input
+                                    type="text"
+                                    id="bitcoin-address"
+                                    className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
+                                    placeholder="Bitcoin wallet address"
+                                    value={bitcoinAddress}
+                                    onChange={(e) => setBitcoinAddress(e.target.value)}
+                                    required={method === 'bitcoin'}
+                                />
+                            </div>
+                        )}
+
+                        {method === 'bank' && (
+                            <>
+                                <div>
+                                    <label className="block text-white text-lg font-medium mb-2" htmlFor="bank-name">Bank Name</label>
+                                    <select
+                                        id="bank-name"
+                                        className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
+                                        value={bankName}
+                                        onChange={(e) => setBankName(e.target.value)}
+                                        required={method === 'bank'}
+                                    >
+                                        <option value="" className="bg-gray-800 text-white">Select a Bank</option>
+                                        {bankOptions.map((bank, index) => (
+                                            <option key={index} value={bank} className="bg-gray-800 text-white">{bank}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-white text-lg font-medium mb-2" htmlFor="account-number">Account Number</label>
+                                    <input
+                                        type="text"
+                                        id="account-number"
+                                        className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
+                                        placeholder="Bank account number"
+                                        value={accountNumber}
+                                        onChange={(e) => setAccountNumber(e.target.value)}
+                                        required={method === 'bank'}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-white text-lg font-medium mb-2" htmlFor="account-holder">Account Holder Name</label>
+                                    <input
+                                        type="text"
+                                        id="account-holder"
+                                        className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
+                                        placeholder="Account holder's full name"
+                                        value={accountHolderName}
+                                        onChange={(e) => setAccountHolderName(e.target.value)}
+                                        required={method === 'bank'}
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {successMessage && (
+                            <div className="bg-green-600 bg-opacity-80 text-white p-3 rounded-lg flex items-center shadow-md">
+                                <CheckCircle size={20} className="mr-2" />
+                                {successMessage}
+                            </div>
+                        )}
+                        {errorMessage && (
+                            <div className="bg-red-600 bg-opacity-80 text-white p-3 rounded-lg flex items-center shadow-md">
+                                <XCircle size={20} className="mr-2" />
+                                {errorMessage}
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold py-3 px-6 rounded-xl hover:from-teal-600 hover:to-emerald-700 transition duration-300 shadow-lg transform hover:scale-105"
+                        >
+                            <Wallet className="inline-block mr-2" size={20} /> Withdraw
+                        </button>
+                    </form>
+                    <button
+                        onClick={() => setShowWithdrawalModal(false)}
+                        className="absolute top-4 right-4 text-white hover:text-gray-200 text-2xl"
+                    >
+                        &times;
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
+
+    const DashboardContent = () => (
+        <div className="p-8 space-y-8 bg-gradient-to-br from-indigo-900 to-purple-800 rounded-2xl shadow-xl border border-indigo-700 backdrop-blur-md">
+            <h2 className="text-5xl font-extrabold text-white text-center drop-shadow-2xl animate-fadein">
+                Welcome to Your Dashboard!
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {/* Balance Card */}
+                <div className="bg-gradient-to-br from-purple-600 to-indigo-700 p-6 rounded-2xl shadow-lg border border-purple-500 transform hover:scale-105 transition duration-300 group">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-2xl font-semibold text-white group-hover:text-purple-200 transition duration-300">Your Balance</h3>
+                        <DollarSignIcon size={36} className="text-white group-hover:rotate-12 transition duration-300" />
+                    </div>
+                    <p className="text-6xl font-bold text-white tracking-wide">
+                        ${balance.toFixed(2)}
+                    </p>
+                    {userId && (
+                        <p className="text-sm text-gray-200 mt-4 break-words">User ID: {userId}</p>
+                    )}
+                </div>
+
+                {/* Watch Ads Card */}
+                <div
+                    onClick={() => handleWatchAd()}
+                    className="cursor-pointer bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-lg border border-blue-500 transform hover:scale-105 transition duration-300 group"
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-2xl font-semibold text-white group-hover:text-blue-200 transition duration-300">Watch Ads</h3>
+                        <Eye size={36} className="text-white group-hover:animate-pulse transition duration-300" />
+                    </div>
+                    <p className="text-white text-lg">Earn $1-$5 per ad.</p>
+                    <p className="text-blue-200 text-sm mt-2">Click to start earning!</p>
+                </div>
+
+                {/* Complete Task Card */}
+                <div
+                    onClick={() => handleCompleteTask()}
+                    className="cursor-pointer bg-gradient-to-br from-green-600 to-teal-700 p-6 rounded-2xl shadow-lg border border-green-500 transform hover:scale-105 transition duration-300 group"
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-2xl font-semibold text-white group-hover:text-green-200 transition duration-300">Complete Tasks</h3>
+                        <CheckCircle size={36} className="text-white group-hover:animate-bounce transition duration-300" />
+                    </div>
+                    <p className="text-white text-lg">Earn $1-$10 per task.</p>
+                    <p className="text-green-200 text-sm mt-2">More complex, higher rewards!</p>
+                </div>
+
+                {/* Withdrawal Card */}
+                <div
+                    onClick={() => setShowWithdrawalModal(true)}
+                    className="cursor-pointer bg-gradient-to-br from-red-600 to-pink-700 p-6 rounded-2xl shadow-lg border border-red-500 transform hover:scale-105 transition duration-300 group"
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-2xl font-semibold text-white group-hover:text-red-200 transition duration-300">Withdraw Funds</h3>
+                        <Wallet size={36} className="text-white group-hover:animate-spin transition duration-300" />
+                    </div>
+                    <p className="text-white text-lg">Cash out your earnings.</p>
+                    <p className="text-red-200 text-sm mt-2">PayPal, USDT, BTC, Bank.</p>
+                </div>
+            </div>
+
+            <div className="mt-8 text-center">
+                <p className="text-gray-300 text-sm italic">
+                    <Info size={16} className="inline-block mr-1" /> Ads and tasks have a 12-hour cooldown.
+                </p>
+            </div>
+        </div>
+    );
+
+    // Sidebar Navigation
+    const Sidebar = () => (
+        <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col p-6 rounded-r-2xl shadow-2xl border-r border-gray-700 h-screen overflow-y-auto">
+            <div className="flex items-center mb-10 mt-2">
+                <img src="https://placehold.co/40x40/8B5CF6/FFFFFF?text=W" alt="Logo" className="w-10 h-10 rounded-full mr-3 shadow-lg" />
+                <h1 className="text-3xl font-extrabold text-white drop-shadow-lg">Watch & Earn</h1>
+            </div>
+            <nav className="flex-grow">
+                <ul className="space-y-4">
+                    <li>
+                        <button
+                            onClick={() => setCurrentPage('dashboard')}
+                            className={`flex items-center w-full p-3 rounded-lg text-lg font-medium transition duration-300 transform hover:scale-105 ${currentPage === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-300 hover:bg-gray-700'}`}
+                        >
+                            <Home className="mr-4" size={24} /> Dashboard
+                        </button>
+                    </li>
+                    <li>
+                        <button
+                            onClick={handleWatchAd}
+                            className="flex items-center w-full p-3 rounded-lg text-lg font-medium text-gray-300 transition duration-300 transform hover:scale-105 hover:bg-gray-700"
+                        >
+                            <Eye className="mr-4" size={24} /> Watch Ads
+                        </button>
+                    </li>
+                    <li>
+                        <button
+                            onClick={handleCompleteTask}
+                            className="flex items-center w-full p-3 rounded-lg text-lg font-medium text-gray-300 transition duration-300 transform hover:scale-105 hover:bg-gray-700"
+                        >
+                            <CheckCircle className="mr-4" size={24} /> Complete Task
+                        </button>
+                    </li>
+                    <li>
+                        <button
+                            onClick={() => setShowWithdrawalModal(true)}
+                            className="flex items-center w-full p-3 rounded-lg text-lg font-medium text-gray-300 transition duration-300 transform hover:scale-105 hover:bg-gray-700"
+                        >
+                            <Wallet className="mr-4" size={24} /> Withdrawal
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+            {user && (
+                <div className="mt-auto pt-6 border-t border-gray-700">
+                    <button
+                        onClick={async () => { await signOut(auth); }}
+                        className="flex items-center w-full p-3 rounded-lg text-lg font-medium text-red-400 bg-red-800 bg-opacity-30 transition duration-300 transform hover:scale-105 hover:bg-red-700 hover:text-white shadow-md"
+                    >
+                        <LogOut className="mr-4" size={24} /> Logout
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+
+    // Notification Pop-ups
+    const NotificationPopup = ({ notification }) => (
+        <div className={`bg-gradient-to-r ${notification.type === 'earned' ? 'from-green-500 to-emerald-600' : 'from-blue-500 to-indigo-600'} text-white p-4 rounded-xl shadow-lg mb-3 flex items-center animate-slideInLeft transition-all duration-500 transform ease-out`}>
+            {notification.type === 'earned' ? <DollarSignIcon size={24} className="mr-3" /> : <Wallet size={24} className="mr-3" />}
+            <span className="font-semibold">{notification.message}</span>
+        </div>
+    );
+
+    const WithdrawalNotificationPopup = ({ notification }) => (
+        <div className={`bg-gradient-to-r ${notification.type === 'earned' ? 'from-green-500 to-emerald-600' : 'from-purple-500 to-pink-600'} text-white p-4 rounded-xl shadow-lg mb-3 flex items-center animate-slideInRight transition-all duration-500 transform ease-out`}>
+            {notification.type === 'earned' ? <DollarSignIcon size={24} className="mr-3" /> : <Wallet size={24} className="mr-3" />}
+            <span className="font-semibold">{notification.message}</span>
+        </div>
+    );
+
+
+    if (currentPage === 'login' || currentPage === 'register') {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black p-4 font-inter relative overflow-hidden">
+                <div className="absolute inset-0 z-0 bg-dots-pattern opacity-10"></div> {/* Background pattern */}
+                <div className="relative z-10 w-full max-w-lg bg-gray-900 bg-opacity-70 backdrop-filter backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-gray-700">
+                    <h1 className="text-5xl font-extrabold text-center text-white mb-8 drop-shadow-lg tracking-tight">
+                        <span className="text-purple-400">Watch & Earn</span> Rewards
+                    </h1>
+                    <p className="text-center text-gray-300 text-lg mb-10">
+                        Login or Register to start earning by watching ads and completing tasks.
+                    </p>
+                    <div className="space-y-6">
+                        <button
+                            onClick={() => setShowLoginModal(true)}
+                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold py-4 px-6 rounded-xl text-xl hover:from-purple-700 hover:to-indigo-800 transition duration-300 shadow-lg transform hover:scale-105 flex items-center justify-center"
+                        >
+                            <LogIn className="mr-3" size={24} /> Login
+                        </button>
+                        <button
+                            onClick={() => setShowRegisterModal(true)}
+                            className="w-full bg-gradient-to-r from-pink-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl text-xl hover:from-pink-700 hover:to-red-800 transition duration-300 shadow-lg transform hover:scale-105 flex items-center justify-center"
+                        >
+                            <UserPlus className="mr-3" size={24} /> Register
+                        </button>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    // Sign in anonymously and then proceed to dashboard
+                                    await signInAnonymously(auth);
+                                    // onAuthStateChanged listener will handle setting the current user and navigating to dashboard
+                                } catch (error) {
+                                    console.error("Error signing in anonymously:", error);
+                                    // Provide user feedback without using alert()
+                                    setNotificationQueue(prev => [...prev, {
+                                        id: Date.now(),
+                                        type: 'error',
+                                        message: "Could not sign in as guest. Please try again.",
+                                        amount: null,
+                                        name: null
+                                    }]);
+                                }
+                            }}
+                            className="w-full bg-gradient-to-r from-gray-600 to-gray-700 text-white font-bold py-4 px-6 rounded-xl text-xl hover:from-gray-700 hover:to-gray-800 transition duration-300 shadow-lg transform hover:scale-105 flex items-center justify-center"
+                        >
+                            <LogIn className="mr-3" size={24} /> Continue as Guest
+                        </button>
+                    </div>
+                </div>
+
+                {showLoginModal && <LoginModal />}
+                {showRegisterModal && <RegisterModal />}
+                {notificationQueue.length > 0 && notificationQueue.filter(n => n.type === 'error').map((n) => (
+                    <NotificationPopup key={n.id} notification={n} />
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex min-h-screen bg-gray-950 font-inter">
+            {/* Sidebar */}
+            <Sidebar />
+
+            {/* Main Content Area */}
+            <div className="flex-grow p-8 relative">
+                {/* Fixed Notification Areas */}
+                <div className="fixed top-8 left-8 z-50 pointer-events-none">
+                    {notificationQueue.map((n) => (
+                        <NotificationPopup key={n.id} notification={n} />
+                    ))}
+                </div>
+                <div className="fixed top-8 right-8 z-50 pointer-events-none">
+                    {withdrawalNotificationQueue.map((n) => (
+                        <WithdrawalNotificationPopup key={n.id} notification={n} />
+                    ))}
+                </div>
+
+                <div className="flex justify-center items-center w-full h-full">
+                    {currentPage === 'dashboard' && <DashboardContent />}
+                    {/* Other pages would go here if they had separate content components,
+                        but for this app, dashboard handles direct actions. */}
+                </div>
+            </div>
+
+            {showWithdrawalModal && <WithdrawalModal />}
+        </div>
+    );
+};
+
+export default App;
+
