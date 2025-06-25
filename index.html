@@ -219,10 +219,14 @@
                     <rect x="70" y="0" width="60" height="30" fill="#5A5A5A" rx="5" ry="5" transform="rotate(-5 100 15)"/>
                 </svg>
             </div>
-            <button id="getStartedBtn" class="btn-primary text-xl">Get Started Now</button>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button id="loginBtnHero" class="btn-primary text-xl">Login</button>
+                <button id="createAccountBtnHero" class="btn-primary bg-transparent border border-indigo-500 hover:bg-indigo-700 text-xl">Create Account</button>
+                <button id="continueAsGuestBtn" class="btn-primary bg-gray-700 hover:bg-gray-600 text-xl">Continue as Guest</button>
+            </div>
         </section>
 
-        <!-- Main Menu Sections (visible after login) -->
+        <!-- Main Menu Sections (visible after login/guest) -->
         <section id="mainApp" class="grid grid-cols-1 md:grid-cols-3 gap-10 hidden">
             <!-- Watch Ads Card -->
             <div id="watchAdsCard" class="figma-card p-8 text-center figma-3d-hover cursor-pointer">
@@ -410,10 +414,13 @@
         const COOLDOWN_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
         // UI Elements
-        const loginBtn = document.getElementById('loginBtn');
-        const createAccountBtn = document.getElementById('createAccountBtn');
+        const loginBtn = document.getElementById('loginBtn'); // Header login
+        const createAccountBtn = document.getElementById('createAccountBtn'); // Header create
+        const loginBtnHero = document.getElementById('loginBtnHero'); // Hero login
+        const createAccountBtnHero = document.getElementById('createAccountBtnHero'); // Hero create
+        const continueAsGuestBtn = document.getElementById('continueAsGuestBtn'); // New Guest button
         const logoutBtn = document.getElementById('logoutBtn');
-        const getStartedBtn = document.getElementById('getStartedBtn');
+        // const getStartedBtn = document.getElementById('getStartedBtn'); // Removed
         const mainApp = document.getElementById('mainApp');
         const heroSection = document.getElementById('hero');
         const userBalanceSpan = document.getElementById('userBalance');
@@ -457,6 +464,10 @@
             "https://spendharassingwarmly.com/m4imbsw5q7?key=e57cfaa68be458b7f45e333ab052b13d"
         ];
 
+        // New State Variable to manage UI flow
+        let appState = 'unauthenticated'; // 'unauthenticated', 'guest', 'authenticated'
+
+
         // --- Firebase Initialization and Authentication ---
         const initializeFirebase = async () => {
             try {
@@ -476,25 +487,24 @@
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         userId = user.uid;
-                        console.log("User logged in:", userId);
+                        // Load user data or initialize profile. This function will determine appState.
                         await loadUserData(userId);
-                        updateUIForLoggedInUser();
                     } else {
                         userId = null;
-                        console.log("No user logged in, attempting anonymous sign-in.");
-                        await signInAnonymously(auth); // Sign in anonymously if no user
-                        // The onAuthStateChanged listener will then trigger again for the anonymous user
+                        console.log("No user logged in, setting to unauthenticated state.");
+                        updateUIState('unauthenticated');
                     }
                 });
 
-                // Attempt custom token sign-in if available
+                // Initial authentication check: if a custom token exists, sign in.
+                // Otherwise, the onAuthStateChanged will set the state to 'unauthenticated'.
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                     console.log("Signed in with custom token.");
-                } else if (!auth.currentUser) {
-                    // If no custom token and no current user, sign in anonymously
-                    await signInAnonymously(auth);
-                    console.log("Signed in anonymously.");
+                } else {
+                    // This will trigger onAuthStateChanged to set the initial 'unauthenticated' state
+                    // if no previous user session exists.
+                    updateUIState('unauthenticated');
                 }
 
             } catch (error) {
@@ -512,40 +522,73 @@
             const userDocRef = doc(db, `artifacts/${__app_id}/users/${uid}/user_data/profile`);
 
             try {
-                // Always try to set default data with merge: true first.
-                // This will create the document if it doesn't exist,
-                // or merge default values if it does.
-                const defaultUserData = {
-                    balance: 0,
-                    lastAdWatchTime: 0,
-                    adCooldownEnds: 0,
-                    adsWatchedInSession: 0,
-                    withdrawalHistory: []
-                };
-                await setDoc(userDocRef, defaultUserData, { merge: true });
-                console.log("Ensured user profile document exists/updated with defaults.");
-
-                // Now, safely get the data which should now exist
-                const docSnap = await getDoc(userDocRef);
-                let userData = docSnap.exists() ? docSnap.data() : defaultUserData; // Fallback in case getDoc somehow fails (though it shouldn't if setDoc passed)
-                console.log("User data loaded:", userData);
-
-                currentUserBalance = userData.balance || 0;
-                adCooldownEnds = userData.adCooldownEnds || 0;
-                adsWatchedInSession = userData.adsWatchedInSession || 0;
-
+                // First, check if the current user is anonymous (potential guest or new anonymous "account")
+                const user = auth.currentUser;
+                if (user && user.isAnonymous) {
+                    const docSnap = await getDoc(userDocRef);
+                    if (docSnap.exists()) {
+                        // This anonymous user has a saved profile, so treat them as 'authenticated'
+                        const data = docSnap.data();
+                        currentUserBalance = data.balance || 0;
+                        adCooldownEnds = data.adCooldownEnds || 0;
+                        adsWatchedInSession = data.adsWatchedInSession || 0;
+                        console.log("Authenticated (anonymous) user data loaded:", data);
+                        updateUIState('authenticated');
+                    } else {
+                        // This anonymous user does NOT have a saved profile, treat as 'guest'
+                        currentUserBalance = 0;
+                        adCooldownEnds = 0;
+                        adsWatchedInSession = 0;
+                        console.log("New anonymous user (guest session).");
+                        updateUIState('guest');
+                    }
+                } else {
+                    // Non-anonymous user (e.g., if email/password auth was implemented) - treat as authenticated
+                    const docSnap = await getDoc(userDocRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        currentUserBalance = data.balance || 0;
+                        adCooldownEnds = data.adCooldownEnds || 0;
+                        adsWatchedInSession = data.adsWatchedInSession || 0;
+                        console.log("Non-anonymous user data loaded:", data);
+                        updateUIState('authenticated');
+                    } else {
+                        // This case shouldn't happen for non-anonymous users if they truly logged in.
+                        // For this demo, it's a fallback.
+                        console.error("Authenticated non-anonymous user without profile data. Initializing new profile.");
+                        const defaultUserData = {
+                            balance: 0,
+                            lastAdWatchTime: 0,
+                            adCooldownEnds: 0,
+                            adsWatchedInSession: 0,
+                            withdrawalHistory: []
+                        };
+                        await setDoc(userDocRef, defaultUserData, { merge: true });
+                        currentUserBalance = 0; adCooldownEnds = 0; adsWatchedInSession = 0;
+                        updateUIState('authenticated');
+                    }
+                }
                 updateBalanceDisplay();
             } catch (e) {
                 console.error("Error loading/initializing user data:", e);
                 showMessage('Data Error', 'Could not load or initialize your user data. Please ensure Firebase permissions are set up correctly.', true);
+                updateUIState('unauthenticated'); // Fallback to unauthenticated
             }
         };
 
         const updateUserData = async (data) => {
             if (!db || !userId) return;
+
+            // Only update data if the user is considered 'authenticated' (has a profile doc)
             const userDocRef = doc(db, `artifacts/${__app_id}/users/${userId}/user_data/profile`);
+            const docSnap = await getDoc(userDocRef); // Re-fetch to ensure latest state
+
+            if (!docSnap.exists()) {
+                console.log("Attempted to save data for a guest user without a profile. Aborting save.");
+                return; // Don't save for guests who haven't explicitly created an 'account'
+            }
+
             try {
-                // Use setDoc with merge: true to handle both creation and updates
                 await setDoc(userDocRef, data, { merge: true });
                 console.log("User data updated:", data);
             } catch (e) {
@@ -559,62 +602,82 @@
         };
 
         // --- UI State Management ---
-        const updateUIForLoggedInUser = () => {
+        const updateUIState = (newState) => {
+            appState = newState;
+            console.log("App State:", appState);
+
+            // Reset all visibility
             heroSection.classList.add('hidden');
-            mainApp.classList.remove('hidden');
-            loginBtn.classList.add('hidden');
-            createAccountBtn.classList.add('hidden');
-            logoutBtn.classList.remove('hidden');
-            getStartedBtn.classList.add('hidden'); // Hide "Get Started"
-        };
-
-        const updateUIForLoggedOutUser = () => {
-            heroSection.classList.remove('hidden');
             mainApp.classList.add('hidden');
-            loginBtn.classList.remove('hidden');
-            createAccountBtn.classList.remove('hidden');
+            loginBtn.classList.add('hidden'); // Header login button
+            createAccountBtn.classList.add('hidden'); // Header create button
+            loginBtnHero.classList.add('hidden'); // Hero login button
+            createAccountBtnHero.classList.add('hidden'); // Hero create button
+            continueAsGuestBtn.classList.add('hidden'); // Hero continue as guest button
             logoutBtn.classList.add('hidden');
-            dynamicContent.classList.add('hidden');
-            currentUserBalance = 0;
-            updateBalanceDisplay();
-            clearInterval(adCountdownInterval); // Stop any running countdown
-            adCountdownSection.classList.add('hidden'); // Ensure hidden
-        };
 
-        // --- Modals Logic ---
-        const openModal = (modal) => {
-            modal.classList.add('open');
-        };
-        const closeModal = (modal) => {
-            modal.classList.remove('open');
-        };
+            userBalanceSpan.textContent = '$0.00'; // Reset balance display visually
 
-        const showMessage = (title, message, isError = false) => {
-            messageBoxTitle.textContent = title;
-            messageBoxContent.textContent = message;
-            messageBoxTitle.className = isError ? 'text-3xl font-bold mb-4 text-red-500' : 'text-3xl font-bold mb-4 text-white';
-            openModal(messageBox);
+            // Null checks added here for dynamically loaded elements
+            if (adCountdownSection) adCountdownSection.classList.add('hidden'); // Hide ad countdown by default
+            if (document.getElementById('adSessionMessage')) document.getElementById('adSessionMessage').classList.add('hidden'); // Hide ad message
+
+
+            switch (appState) {
+                case 'unauthenticated':
+                    heroSection.classList.remove('hidden');
+                    loginBtn.classList.remove('hidden'); // Show header login
+                    createAccountBtn.classList.remove('hidden'); // Show header create
+                    loginBtnHero.classList.remove('hidden'); // Show hero login
+                    createAccountBtnHero.classList.remove('hidden'); // Show hero create
+                    continueAsGuestBtn.classList.remove('hidden'); // Show hero guest
+                    break;
+                case 'guest':
+                    mainApp.classList.remove('hidden');
+                    logoutBtn.classList.remove('hidden');
+                    logoutBtn.textContent = 'End Guest Session'; // Change text for guest
+                    userBalanceSpan.textContent = '$0.00 (Guest)'; // Indicate guest balance
+                    loginBtn.classList.remove('hidden'); // Allow guest to login/create account
+                    createAccountBtn.classList.remove('hidden'); // Allow guest to login/create account
+                    break;
+                case 'authenticated':
+                    mainApp.classList.remove('hidden');
+                    logoutBtn.classList.remove('hidden');
+                    logoutBtn.textContent = 'Logout'; // Regular logout text
+                    updateBalanceDisplay(); // Show actual balance
+                    // These will be called when user navigates to Watch Ads content
+                    // startAdCooldownTimer(); // Called inside loadWatchAdsContent now
+                    // updateAdWatchButtons(); // Called inside loadWatchAdsContent now
+                    break;
+            }
         };
 
         // --- Event Listeners for UI ---
+        // Header buttons
         loginBtn.addEventListener('click', () => openModal(loginModal));
         createAccountBtn.addEventListener('click', () => openModal(createAccountModal));
-        getStartedBtn.addEventListener('click', () => {
-            // If already logged in, show main app, otherwise open login modal
-            if (userId && auth.currentUser) {
-                updateUIForLoggedInUser();
-            } else {
-                openModal(createAccountModal);
+        // Hero section buttons
+        loginBtnHero.addEventListener('click', () => openModal(loginModal));
+        createAccountBtnHero.addEventListener('click', () => openModal(createAccountModal));
+        continueAsGuestBtn.addEventListener('click', async () => {
+            try {
+                // Sign in anonymously to get a UID for the guest session
+                await signInAnonymously(auth);
+                // onAuthStateChanged will handle updating UI to 'guest' state
+            } catch (error) {
+                console.error("Error signing in anonymously:", error);
+                showMessage('Error', `Could not start guest session: ${error.message}`, true);
             }
         });
+
         logoutBtn.addEventListener('click', async () => {
             try {
                 await signOut(auth);
-                updateUIForLoggedOutUser();
-                showMessage('Logged Out', 'You have been successfully logged out.');
+                // onAuthStateChanged will handle updating UI to 'unauthenticated'
+                showMessage('Session Ended', 'Your session has ended.');
             } catch (error) {
-                console.error("Error logging out:", error);
-                showMessage('Logout Error', `Failed to log out: ${error.message}`, true);
+                console.error("Error ending session:", error);
+                showMessage('Error', `Failed to end session: ${error.message}`, true);
             }
         });
 
@@ -650,15 +713,20 @@
             const email = loginEmail.value;
             const password = loginPassword.value;
             // Simplified for frontend demo: A real app would authenticate here.
-            // For this demo, we'll just simulate success and sign in anonymously.
+            // For this demo, we'll just simulate success and sign in anonymously if not already signed in.
+            // A real login would use signInWithEmailAndPassword.
             try {
-                // In a real app: await signInWithEmailAndPassword(auth, email, password);
-                // For this demo, just sign in anonymously and update UI
                 if (!auth.currentUser) {
-                    await signInAnonymously(auth);
+                    await signInAnonymously(auth); // Ensure we have a UID
                 }
+                // When "logging in" via the form, we treat this as transitioning to an 'authenticated' state.
+                // So, ensure their Firestore profile exists.
+                const userDocRef = doc(db, `artifacts/${__app_id}/users/${auth.currentUser.uid}/user_data/profile`);
+                await setDoc(userDocRef, { email: email, lastLogin: Date.now() }, { merge: true }); // Add email for demo
+                
                 closeModal(loginModal);
                 showMessage('Login Successful', 'You are now logged in! Enjoy earning.', false);
+                // loadUserData will be triggered by onAuthStateChanged after setDoc, which updates UI state
             } catch (error) {
                 console.error("Login failed:", error);
                 showMessage('Login Failed', 'Invalid credentials or an error occurred.', true);
@@ -673,7 +741,6 @@
             // Simplified for frontend demo: A real app would register user here.
             // For this demo, we'll just simulate success and sign in anonymously.
             try {
-                // In a real app: await createUserWithEmailAndPassword(auth, email, password);
                 if (!auth.currentUser) {
                     await signInAnonymously(auth); // Create an anonymous user to get a UID
                 }
@@ -690,6 +757,7 @@
 
                 closeModal(createAccountModal);
                 showMessage('Account Created!', 'Your account has been successfully created. Welcome to AdEarn!', false);
+                // loadUserData will be triggered by onAuthStateChanged after setDoc, which updates UI state
             } catch (error) {
                 console.error("Account creation failed:", error);
                 showMessage('Creation Failed', `Failed to create account: ${error.message}`, true);
@@ -709,7 +777,6 @@
             } else if (method === 'usdt') {
                 usdtFields.classList.remove('hidden');
             } else if (method === 'bitcoin') {
-                usdtFields.classList.add('hidden'); // This was a bug in previous version, should hide usdt fields
                 bitcoinFields.classList.remove('hidden');
             } else if (method === 'bank') {
                 bankFields.classList.remove('hidden');
@@ -720,6 +787,11 @@
             e.preventDefault();
             const amount = parseFloat(document.getElementById('withdrawalAmount').value);
             const method = withdrawalMethodSelect.value;
+
+            if (appState !== 'authenticated') {
+                 showMessage('Account Required', 'You need a registered account to withdraw funds.', true);
+                 return;
+            }
 
             if (amount <= 0 || isNaN(amount)) {
                 showMessage('Invalid Amount', 'Please enter a valid withdrawal amount.', true);
@@ -814,18 +886,26 @@
                 </div>
             `;
             attachAdWatchListeners();
-            // Call these after dynamic content is loaded
-            startAdCooldownTimer();
-            updateAdWatchButtons();
+            // Call these after dynamic content is loaded, and only for authenticated users
+            if (appState === 'authenticated') {
+                startAdCooldownTimer();
+                updateAdWatchButtons();
+            } else {
+                 // Ensure these are hidden if appState is not 'authenticated'
+                 if (adCountdownSection) adCountdownSection.classList.add('hidden');
+                 if (document.getElementById('adSessionMessage')) document.getElementById('adSessionMessage').classList.add('hidden');
+            }
         };
 
         const attachAdWatchListeners = () => {
             document.querySelectorAll('.watch-ad-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
-                    if (!userId) {
-                        showMessage('Login Required', 'Please log in or create an account to watch ads.', true);
+                    if (appState !== 'authenticated') { // Only allow if authenticated
+                        showMessage('Account Required', 'Please create an account to save your earnings and watch ads!', true);
+                        openModal(createAccountModal); // Prompt to create account
                         return;
                     }
+                    
                     if (adCooldownEnds > Date.now() || adsWatchedInSession >= MAX_ADS_PER_12_HOURS) {
                         showMessage('Cooldown Active', `You can only watch ${MAX_ADS_PER_12_HOURS} ads every 12 hours. Please wait.`, true);
                         return;
@@ -848,6 +928,12 @@
 
             document.querySelectorAll('.claim-ad-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
+                    if (appState !== 'authenticated') { // Only allow if authenticated
+                        showMessage('Account Required', 'Please create an account to claim rewards!', true);
+                        openModal(createAccountModal); // Prompt to create account
+                        return;
+                    }
+
                     const adIndex = e.target.dataset.adIndex;
                     const earnedAmount = (Math.random() * 4 + 1).toFixed(2); // $1 to $5
                     currentUserBalance += parseFloat(earnedAmount);
@@ -895,8 +981,8 @@
                 const currentAdCountdownSpan = document.getElementById('adCountdown');
                 const currentAdSessionMessage = document.getElementById('adSessionMessage');
 
-                if (!currentAdCountdownSection || !currentAdCountdownSpan || !currentAdSessionMessage) {
-                    // Elements not available (e.g., user navigated away from 'Watch Ads' section)
+                // Only proceed if elements exist and user is authenticated
+                if (!currentAdCountdownSection || !currentAdCountdownSpan || !currentAdSessionMessage || appState !== 'authenticated') {
                     clearInterval(adCountdownInterval);
                     adCountdownInterval = null;
                     return;
@@ -939,7 +1025,8 @@
 
         const updateAdWatchButtons = () => {
             const now = Date.now();
-            const canWatch = (now >= adCooldownEnds && adsWatchedInSession < MAX_ADS_PER_12_HOURS);
+            // Only consider 'canWatch' if authenticated
+            const canWatch = (appState === 'authenticated' && now >= adCooldownEnds && adsWatchedInSession < MAX_ADS_PER_12_HOURS);
             const adWatchArea = document.getElementById('adWatchArea');
             const adSessionMessage = document.getElementById('adSessionMessage');
 
@@ -957,7 +1044,7 @@
                 });
 
                 if (adSessionMessage) { // Check if element exists before manipulating
-                    if (!canWatch) {
+                    if (!canWatch && appState === 'authenticated') { // Only show message if authenticated and cannot watch
                         adSessionMessage.classList.remove('hidden');
                     } else {
                         adSessionMessage.classList.add('hidden');
@@ -1001,8 +1088,9 @@
             `;
             document.querySelectorAll('.complete-task-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
-                    if (!userId) {
-                        showMessage('Login Required', 'Please log in or create an account to complete tasks.', true);
+                    if (appState !== 'authenticated') { // Only allow if authenticated
+                        showMessage('Account Required', 'Please create an account to save your earnings from tasks!', true);
+                        openModal(createAccountModal); // Prompt to create account
                         return;
                     }
                     e.target.disabled = true;
@@ -1027,8 +1115,9 @@
         };
 
         const loadWithdrawalContent = () => {
-            if (!userId) {
-                showMessage('Login Required', 'Please log in or create an account to withdraw funds.', true);
+            if (appState !== 'authenticated') { // Only allow if authenticated
+                showMessage('Account Required', 'You need a registered account to withdraw funds.', true);
+                openModal(createAccountModal); // Prompt to create account
                 return;
             }
             modalBalanceSpan.textContent = `$${currentUserBalance.toFixed(2)}`;
@@ -1053,7 +1142,7 @@
             let icon, text;
             if (type === 'earned') {
                 icon = '<i class="fas fa-money-bill-wave text-green-400"></i>';
-                text = `<span class="font-bold text-indigo-300">${name}</span> just earned <span class="text-green-400 font-bold">$${amount.toFixed(2)}}</span>!`;
+                text = `<span class="font-bold text-indigo-300">${name}</span> just earned <span class="text-green-400 font-bold">$${amount.toFixed(2)}</span>!`;
             } else if (type === 'withdrawal') {
                 icon = '<i class="fas fa-hand-holding-usd text-blue-400"></i>';
                 text = `<span class="font-bold text-indigo-300">${name}</span> withdrew <span class="text-blue-400 font-bold">$${amount.toFixed(2)}</span>!`;
