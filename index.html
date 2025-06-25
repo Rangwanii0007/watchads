@@ -1,806 +1,1098 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, addDoc, getDocs } from 'firebase/firestore';
-import { Home, Eye, DollarSign, Wallet, LogIn, UserPlus, LogOut, CheckCircle, XCircle, Info, Bitcoin, CreditCard, DollarSignIcon, Paypal } from 'lucide-react'; // Using Lucide React for icons
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earn Money by Watching Ads - Figma Style</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Custom CSS for Figma-style aesthetics and dark theme */
+        :root {
+            --primary-bg: #1A1A1A;
+            --secondary-bg: #2A2A2A;
+            --accent-color: #6366F1; /* Indigo for accent, can be changed */
+            --text-color: #F8F8F8;
+            --card-hover-shadow: rgba(99, 102, 241, 0.4); /* Accent color shadow */
+        }
 
-// Initialize Firebase (global variables provided by the Canvas environment)
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
 
-// Initialize Firebase App
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+        /* Figma-style Card base */
+        .figma-card {
+            background-color: var(--secondary-bg);
+            border-radius: 1.5rem; /* More rounded */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease-out;
+            border: 1px solid rgba(255, 255, 255, 0.08); /* Subtle border */
+        }
 
-// Helper to get a user ID from the current user object
-const getUserId = (currentUser) => {
-    return currentUser?.uid; // Firebase currentUser.uid is always defined if a user is signed in
-};
+        .figma-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 15px 40px var(--card-hover-shadow);
+        }
 
-// Ad and Task Data
-const adLinks = [
-    "https://spendharassingwarmly.com/fvhypi3y?key=80981271a9dcafc8801d326e77a46d71",
-    "https://spendharassingwarmly.com/t75wmytbb?key=310969957557de70b2985540d31a7958",
-    "https://spendharassingwarmly.com/ymq7df2pms?key=f3519aaedb5f6a5f7fb946000fcacda3",
-    "https://spendharassingwarmly.com/m4imbsw5q7?key=e57cfaa68be458b7f45e333ab052b13d"
-];
+        /* 3D Effect for menu items/cards on hover */
+        .figma-3d-hover {
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            transition: transform 0.3s ease-out;
+        }
 
-// Placeholder for bank options (you can expand this)
-const bankOptions = [
-    "Bank of America", "Chase Bank", "Wells Fargo", "Citibank", "HSBC",
-    "JPMorgan Chase", "Goldman Sachs", "Morgan Stanley", "PNC Bank", "TD Bank",
-    "Capital One", "U.S. Bank", "Truist", "BMO Harris Bank", "Fifth Third Bank",
-    "Citizens Financial Group", "KeyBank", "Regions Bank", "Discover Bank", "Ally Bank",
-    "Synchrony Bank", "Comerica Bank", "First Horizon Bank", "Huntington Bank", "Zions Bancorporation"
-];
+        .figma-3d-hover:hover {
+            transform: rotateX(5deg) rotateY(5deg) scale(1.02);
+        }
 
-// Main App Component
-const App = () => {
-    const [currentPage, setCurrentPage] = useState('loading'); // 'loading', 'login', 'register', 'dashboard', etc.
-    const [user, setUser] = useState(null);
-    const [userId, setUserId] = useState(null);
-    const [balance, setBalance] = useState(0);
-    const [lastAdWatchedTimestamp, setLastAdWatchedTimestamp] = useState(0);
-    const [showLoginModal, setShowLoginModal] = useState(false);
-    const [showRegisterModal, setShowRegisterModal] = useState(false);
-    const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
-    const [notificationQueue, setNotificationQueue] = useState([]);
-    const [withdrawalNotificationQueue, setWithdrawalNotificationQueue] = useState([]);
+        /* Button styles */
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 9999px; /* Fully rounded */
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+        }
+        .btn-primary:hover {
+            background-color: #4F46E5; /* Darker indigo */
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5);
+        }
 
-    // Firebase Authentication and Firestore Listener
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            if (currentUser) {
-                // User is signed in (either authenticated or anonymous)
-                setUser(currentUser);
-                const currentUserId = getUserId(currentUser);
-                setUserId(currentUserId);
+        /* Input field styles */
+        .figma-input {
+            background-color: #3A3A3A;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            width: 100%;
+        }
+        .figma-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
 
-                // Listen to user data from Firestore
-                // Path for user data: artifacts/{appId}/users/{userId}/data/profile
-                const userDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/data/profile`);
-                const userSnapshotUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const userData = docSnap.data();
-                        setBalance(userData.balance || 0);
-                        setLastAdWatchedTimestamp(userData.lastAdWatchedTimestamp || 0);
-                    } else {
-                        // Create user profile if it doesn't exist for this user ID
-                        setDoc(userDocRef, { balance: 0, lastAdWatchedTimestamp: 0, createdAt: Date.now() });
-                    }
-                }, (error) => {
-                    console.error("Error fetching user data:", error);
-                });
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: var(--secondary-bg);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            width: 90%;
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .modal-overlay.open .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
 
-                setCurrentPage('dashboard');
-                return () => userSnapshotUnsubscribe(); // Cleanup Firestore listener
-            } else {
-                // No user is signed in. Attempt initial sign-in.
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        // If a custom token is provided (from canvas env), use it first.
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        // If no custom token, sign in anonymously to allow guest access.
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Error during initial authentication (custom token or anonymous):", error);
-                    // If initial sign-in fails, ensure user state is cleared and redirect to login page.
-                    setUser(null);
-                    setUserId(null);
-                    setBalance(0);
-                    setLastAdWatchedTimestamp(0);
-                    setCurrentPage('login'); // Show login/register options if auto-login fails
+        /* Sidebar Notifications */
+        .notification-sidebar {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 500;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .notification-left { left: 1rem; }
+        .notification-right { right: 1rem; }
+
+        .notification-item {
+            background-color: var(--secondary-bg);
+            color: var(--text-color);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: fadeInOut 8s forwards; /* Adjust timing as needed */
+            opacity: 0; /* Start hidden */
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(20px); }
+            10% { opacity: 1; transform: translateX(0); }
+            90% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(-20px); display: none; }
+        }
+
+        /* Specific animation for left/right */
+        .notification-left .notification-item { animation: fadeInOutLeft 8s forwards; }
+        .notification-right .notification-item { animation: fadeInOutRight 8s forwards; }
+
+        @keyframes fadeInOutLeft {
+            0% { opacity: 0; transform: translateX(-50px); }
+            10% { opacity: 1; transform: translateX(0); }
+            90% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(-50px); display: none; }
+        }
+        @keyframes fadeInOutRight {
+            0% { opacity: 0; transform: translateX(50px); }
+            10% { opacity: 1; transform: translateX(0); }
+            90% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(50px); display: none; }
+        }
+
+
+        /* Hidden utility class */
+        .hidden { display: none; }
+    </style>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="selection:bg-indigo-600 selection:text-white">
+    <!-- Header -->
+    <header class="bg-gray-900 shadow-lg text-white py-4 px-6 flex justify-between items-center sticky top-0 z-50 rounded-b-xl">
+        <div class="text-3xl font-extrabold text-indigo-400 uppercase tracking-widest">
+            AdEarn
+        </div>
+        <div id="dashboard" class="flex items-center space-x-6">
+            <span class="text-xl font-semibold">Balance: <span id="userBalance" class="text-green-400">$0.00</span></span>
+            <button id="loginBtn" class="btn-primary">Login</button>
+            <button id="createAccountBtn" class="btn-primary bg-transparent border border-indigo-500 hover:bg-indigo-700">Create Account</button>
+            <button id="logoutBtn" class="btn-primary bg-red-600 hover:bg-red-700 hidden">Logout</button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="container mx-auto px-4 py-16">
+        <!-- Hero Section - Placeholder, can be designed with a 3D watch image -->
+        <section id="hero" class="text-center py-16 bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl shadow-inner-xl mb-16">
+            <h1 class="text-6xl font-extrabold text-white mb-6 leading-tight">
+                Watch Ads. <span class="text-indigo-400">Earn Money.</span> <br> Simple & Secure.
+            </h1>
+            <p class="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
+                Join thousands of users earning real cash by completing simple tasks and watching ads from your home.
+            </p>
+            <div class="relative w-96 h-96 mx-auto mb-10 perspective-[1000px]">
+                <!-- Simple 3D Watch SVG representation -->
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="absolute inset-0 figma-3d-watch transition-transform duration-500 hover:rotate-y-10 hover:rotate-x-5" style="transform: rotateY(-15deg) rotateX(10deg);">
+                    <!-- Watch Face (circle) -->
+                    <circle cx="100" cy="100" r="80" fill="#3A3A3A" stroke="#5A5A5A" stroke-width="5" />
+                    <!-- Bezel (inner circle) -->
+                    <circle cx="100" cy="100" r="75" fill="#4A4A4A" />
+                    <!-- Screen (smaller circle) -->
+                    <circle cx="100" cy="100" r="60" fill="#2E2E2E" />
+                    <!-- Digital Display / Time placeholder -->
+                    <text x="100" y="105" font-family="Inter" font-size="24" fill="#6366F1" text-anchor="middle" font-weight="bold">10:30</text>
+                    <!-- Hour hand -->
+                    <rect x="97" y="60" width="6" height="40" fill="#F8F8F8" transform="rotate(30 100 100)" />
+                    <!-- Minute hand -->
+                    <rect x="98" y="50" width="4" height="50" fill="#F8F8F8" transform="rotate(180 100 100)" />
+                    <!-- Watch Strap 1 -->
+                    <rect x="70" y="170" width="60" height="30" fill="#5A5A5A" rx="5" ry="5" transform="rotate(5 100 185)"/>
+                    <rect x="70" y="0" width="60" height="30" fill="#5A5A5A" rx="5" ry="5" transform="rotate(-5 100 15)"/>
+                </svg>
+            </div>
+            <button id="getStartedBtn" class="btn-primary text-xl">Get Started Now</button>
+        </section>
+
+        <!-- Main Menu Sections (visible after login) -->
+        <section id="mainApp" class="grid grid-cols-1 md:grid-cols-3 gap-10 hidden">
+            <!-- Watch Ads Card -->
+            <div id="watchAdsCard" class="figma-card p-8 text-center figma-3d-hover cursor-pointer">
+                <i class="fas fa-play-circle text-6xl text-indigo-400 mb-4"></i>
+                <h2 class="text-3xl font-bold mb-3">Watch Ads & Earn</h2>
+                <p class="text-gray-400 mb-6">View sponsored content and get paid for your time.</p>
+                <div id="adCountdownSection" class="mb-4 text-center hidden">
+                    <p class="text-sm text-gray-400">Next ads available in:</p>
+                    <div class="text-indigo-400 font-bold text-2xl" id="adCountdown">00:00:00</div>
+                </div>
+                <button id="watchAdsBtn" class="btn-primary w-full">Start Watching</button>
+            </div>
+
+            <!-- Complete Task Card -->
+            <div id="completeTaskCard" class="figma-card p-8 text-center figma-3d-hover cursor-pointer">
+                <i class="fas fa-tasks text-6xl text-indigo-400 mb-4"></i>
+                <h2 class="text-3xl font-bold mb-3">Complete Tasks</h2>
+                <p class="text-gray-400 mb-6">Engage with various tasks to boost your earnings.</p>
+                <button id="completeTaskBtn" class="btn-primary w-full">View Tasks</button>
+            </div>
+
+            <!-- Withdrawal Card -->
+            <div id="withdrawalCard" class="figma-card p-8 text-center figma-3d-hover cursor-pointer">
+                <i class="fas fa-wallet text-6xl text-indigo-400 mb-4"></i>
+                <h2 class="text-3xl font-bold mb-3">Withdraw Funds</h2>
+                <p class="text-gray-400 mb-6">Easily cash out your earnings via multiple methods.</p>
+                <button id="withdrawBtn" class="btn-primary w-full">Withdraw Now</button>
+            </div>
+        </section>
+
+        <!-- Dynamic Content Area -->
+        <section id="dynamicContent" class="mt-16 hidden">
+            <!-- Content will be loaded here based on menu selection -->
+        </section>
+    </main>
+
+    <!-- Notification Sidebars -->
+    <div id="earnedNotifications" class="notification-sidebar notification-left"></div>
+    <div id="withdrawalNotifications" class="notification-sidebar notification-right"></div>
+
+    <!-- Modals -->
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-4xl font-bold text-white mb-8 text-center">Login to AdEarn</h3>
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label for="loginEmail" class="block text-gray-300 text-lg font-medium mb-2">Email</label>
+                    <input type="email" id="loginEmail" class="figma-input" placeholder="your@email.com" required>
+                </div>
+                <div>
+                    <label for="loginPassword" class="block text-gray-300 text-lg font-medium mb-2">Password</label>
+                    <input type="password" id="loginPassword" class="figma-input" placeholder="********" required>
+                </div>
+                <button type="submit" class="btn-primary w-full text-lg mt-6">Login</button>
+                <button type="button" id="closeLoginModal" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-full transition duration-300">Cancel</button>
+            </form>
+            <p class="text-center text-gray-400 mt-6">Don't have an account? <a href="#" id="switchToCreateAccount" class="text-indigo-400 hover:underline">Create One</a></p>
+        </div>
+    </div>
+
+    <!-- Create Account Modal -->
+    <div id="createAccountModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-4xl font-bold text-white mb-8 text-center">Create Your AdEarn Account</h3>
+            <form id="createAccountForm" class="space-y-6">
+                <div>
+                    <label for="createUsername" class="block text-gray-300 text-lg font-medium mb-2">Username</label>
+                    <input type="text" id="createUsername" class="figma-input" placeholder="Choose a username" required>
+                </div>
+                <div>
+                    <label for="createEmail" class="block text-gray-300 text-lg font-medium mb-2">Email</label>
+                    <input type="email" id="createEmail" class="figma-input" placeholder="your@email.com" required>
+                </div>
+                <div>
+                    <label for="createPassword" class="block text-gray-300 text-lg font-medium mb-2">Password</label>
+                    <input type="password" id="createPassword" class="figma-input" placeholder="Min 6 characters" required>
+                </div>
+                <button type="submit" class="btn-primary w-full text-lg mt-6">Create Account</button>
+                <button type="button" id="closeCreateAccountModal" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-full transition duration-300">Cancel</button>
+            </form>
+            <p class="text-center text-gray-400 mt-6">Already have an account? <a href="#" id="switchToLogin" class="text-indigo-400 hover:underline">Login Here</a></p>
+        </div>
+    </div>
+
+    <!-- Withdrawal Modal -->
+    <div id="withdrawalModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-4xl font-bold text-white mb-8 text-center">Withdraw Your Earnings</h3>
+            <div class="text-center text-xl text-gray-300 mb-6">Your current balance: <span id="modalBalance" class="text-green-400 font-bold">$0.00</span></div>
+            <form id="withdrawalForm" class="space-y-6">
+                <div>
+                    <label for="withdrawalAmount" class="block text-gray-300 text-lg font-medium mb-2">Amount (USD)</label>
+                    <input type="number" id="withdrawalAmount" class="figma-input" placeholder="e.g., 50.00" min="5" step="0.01" required>
+                </div>
+                <div>
+                    <label for="withdrawalMethod" class="block text-gray-300 text-lg font-medium mb-2">Withdrawal Method</label>
+                    <select id="withdrawalMethod" class="figma-input" required>
+                        <option value="">Select a method</option>
+                        <option value="paypal">PayPal</option>
+                        <option value="usdt">USDT (Tether)</option>
+                        <option value="bitcoin">Bitcoin</option>
+                        <option value="bank">Bank Transfer</option>
+                    </select>
+                </div>
+
+                <!-- Method-specific fields -->
+                <div id="paypalFields" class="hidden space-y-4">
+                    <div>
+                        <label for="paypalEmail" class="block text-gray-300 text-lg font-medium mb-2">PayPal Email</label>
+                        <input type="email" id="paypalEmail" class="figma-input" placeholder="your@paypal.com">
+                    </div>
+                </div>
+
+                <div id="usdtFields" class="hidden space-y-4">
+                    <div>
+                        <label for="usdtAddress" class="block text-gray-300 text-lg font-medium mb-2">USDT Wallet Address (TRC20)</label>
+                        <input type="text" id="usdtAddress" class="figma-input" placeholder="Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                    </div>
+                </div>
+
+                <div id="bitcoinFields" class="hidden space-y-4">
+                    <div>
+                        <label for="bitcoinAddress" class="block text-gray-300 text-lg font-medium mb-2">Bitcoin Wallet Address</label>
+                        <input type="text" id="bitcoinAddress" class="figma-input" placeholder="bc1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                    </div>
+                </div>
+
+                <div id="bankFields" class="hidden space-y-4">
+                    <div>
+                        <label for="bankName" class="block text-gray-300 text-lg font-medium mb-2">Bank Name</label>
+                        <select id="bankName" class="figma-input">
+                            <option value="">Select Bank</option>
+                            <option value="hbl">Habib Bank Limited (HBL)</option>
+                            <option value="mcb">MCB Bank Limited</option>
+                            <option value="abl">Allied Bank Limited (ABL)</option>
+                            <option value="ubl">United Bank Limited (UBL)</option>
+                            <option value="meezan">Meezan Bank Limited</option>
+                            <option value="bafl">Bank Alfalah Limited (BAFL)</option>
+                            <option value="askari">Askari Bank Limited</option>
+                            <option value="jsbl">JS Bank Limited</option>
+                            <option value="bankalhabib">Bank Al Habib Limited</option>
+                            <option value="nrsp">NRSP Microfinance Bank</option>
+                            <option value="samb">Summit Bank Limited</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="accountHolderName" class="block text-gray-300 text-lg font-medium mb-2">Account Holder Name</label>
+                        <input type="text" id="accountHolderName" class="figma-input" placeholder="John Doe">
+                    </div>
+                    <div>
+                        <label for="accountNumber" class="block text-gray-300 text-lg font-medium mb-2">Account Number / IBAN</label>
+                        <input type="text" id="accountNumber" class="figma-input" placeholder="PKXX XXXX XXXX XXXX XXXX XXXX">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary w-full text-lg mt-6">Submit Withdrawal Request</button>
+                <button type="button" id="closeWithdrawalModal" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-full transition duration-300">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Message Box (for alerts) -->
+    <div id="messageBox" class="modal-overlay">
+        <div class="modal-content text-center">
+            <h3 id="messageBoxTitle" class="text-3xl font-bold mb-4 text-white"></h3>
+            <p id="messageBoxContent" class="text-gray-300 text-lg mb-6"></p>
+            <button id="closeMessageBox" class="btn-primary">OK</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        // Global Firebase variables
+        let app, db, auth, userId;
+        let currentUserBalance = 0;
+        let adCooldownEnds = 0; // Timestamp when ad cooldown ends
+        let adsWatchedInSession = 0;
+        const MAX_ADS_PER_12_HOURS = 5; // Example: user can watch 5 ads per 12 hours
+        const COOLDOWN_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+
+        // UI Elements
+        const loginBtn = document.getElementById('loginBtn');
+        const createAccountBtn = document.getElementById('createAccountBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const getStartedBtn = document.getElementById('getStartedBtn');
+        const mainApp = document.getElementById('mainApp');
+        const heroSection = document.getElementById('hero');
+        const userBalanceSpan = document.getElementById('userBalance');
+        const dynamicContent = document.getElementById('dynamicContent');
+        const watchAdsBtn = document.getElementById('watchAdsBtn');
+        const completeTaskBtn = document.getElementById('completeTaskBtn');
+        const withdrawBtn = document.getElementById('withdrawBtn');
+        const adCountdownSection = document.getElementById('adCountdownSection');
+        const adCountdownSpan = document.getElementById('adCountdown');
+
+        // Modals
+        const loginModal = document.getElementById('loginModal');
+        const createAccountModal = document.getElementById('createAccountModal');
+        const withdrawalModal = document.getElementById('withdrawalModal');
+        const messageBox = document.getElementById('messageBox');
+        const messageBoxTitle = document.getElementById('messageBoxTitle');
+        const messageBoxContent = document.getElementById('messageBoxContent');
+
+        // Forms
+        const loginForm = document.getElementById('loginForm');
+        const createAccountForm = document.getElementById('createAccountForm');
+        const withdrawalForm = document.getElementById('withdrawalForm');
+
+        // Withdrawal fields
+        const withdrawalMethodSelect = document.getElementById('withdrawalMethod');
+        const paypalFields = document.getElementById('paypalFields');
+        const usdtFields = document.getElementById('usdtFields');
+        const bitcoinFields = document.getElementById('bitcoinFields');
+        const bankFields = document.getElementById('bankFields');
+        const modalBalanceSpan = document.getElementById('modalBalance');
+
+        // Notification Elements
+        const earnedNotificationsDiv = document.getElementById('earnedNotifications');
+        const withdrawalNotificationsDiv = document.getElementById('withdrawalNotifications');
+
+        // Ad Links (provided by user)
+        const adLinks = [
+            "https://spendharassingwarmly.com/fvhypi3y?key=80981271a9dcafc8801d326e77a46d71",
+            "https://spendharassingwarmly.com/t75wmytbb?key=310969957557de70b2985540d31a7958",
+            "https://spendharassingwarmly.com/ymq7df2pms?key=f3519aaedb5f6a5f7fb946000fcacda3",
+            "https://spendharassingwarmly.com/m4imbsw5q7?key=e57cfaa68be458b7f45e333ab052b13d"
+        ];
+
+        // --- Firebase Initialization and Authentication ---
+        const initializeFirebase = async () => {
+            try {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+
+                if (Object.keys(firebaseConfig).length === 0) {
+                    console.error("Firebase config is missing. Please ensure __firebase_config is provided.");
+                    showMessage('Error', 'Firebase configuration is missing. The app may not function correctly.', true);
+                    return;
                 }
-            }
-        });
-        // Cleanup auth listener on component unmount
-        return () => unsubscribe();
-    }, []); // Empty dependency array ensures this runs once on mount
 
-    // Notification Effect
-    useEffect(() => {
-        const generateRandomNotification = () => {
-            const names = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Heidi", "Ivan", "Judy"];
-            const earnedAmount = (Math.random() * (2500 - 300) + 300).toFixed(2);
-            const withdrawalAmount = (Math.random() * (2500 - 500) + 500).toFixed(2);
-            const randomName = names[Math.floor(Math.random() * names.length)];
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
 
-            // Add earned notification
-            setNotificationQueue(prev => [...prev, {
-                id: Date.now(),
-                type: 'earned',
-                message: `${randomName} just earned $${earnedAmount}!`,
-                amount: earnedAmount,
-                name: randomName
-            }]);
-
-            // Add withdrawal notification (less frequent)
-            if (Math.random() > 0.5) { // 50% chance to show withdrawal notification
-                setWithdrawalNotificationQueue(prev => [...prev, {
-                    id: Date.now() + 1,
-                    type: 'withdrawal',
-                    message: `${randomName} withdrew $${withdrawalAmount}!`,
-                    amount: withdrawalAmount,
-                    name: randomName
-                }]);
-            }
-        };
-
-        // Clear old notifications
-        const cleanupNotifications = () => {
-            setNotificationQueue(prev => prev.filter(n => Date.now() - n.id < 5000)); // Keep for 5 seconds
-            setWithdrawalNotificationQueue(prev => prev.filter(n => Date.now() - n.id < 5000)); // Keep for 5 seconds
-        };
-
-        const intervalId = setInterval(() => {
-            generateRandomNotification();
-            cleanupNotifications();
-        }, 3000); // Generate every 3 seconds
-
-        return () => clearInterval(intervalId);
-    }, []);
-
-    const updateBalance = async (amount) => {
-        if (!userId) {
-            console.error("User not authenticated.");
-            // Ideally, show a message to the user that they need to be logged in.
-            return;
-        }
-        const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/data/profile`);
-        try {
-            await updateDoc(userDocRef, {
-                balance: balance + amount,
-                lastAdWatchedTimestamp: Date.now() // Update timestamp on any ad/task watch
-            });
-            setBalance(prev => prev + amount);
-            setLastAdWatchedTimestamp(Date.now());
-        } catch (e) {
-            console.error("Error updating document: ", e);
-        }
-    };
-
-    const handleWatchAd = async () => {
-        const cooldownPeriod = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
-        if (Date.now() - lastAdWatchedTimestamp < cooldownPeriod) {
-            const remainingTime = lastAdWatchedTimestamp + cooldownPeriod - Date.now();
-            const hours = Math.floor(remainingTime / (1000 * 60 * 60));
-            const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
-            alert(`You can watch ads again in ${hours}h ${minutes}m ${seconds}s.`); // Using alert for simplicity, a modal would be better
-            return;
-        }
-
-        const earnings = parseFloat((Math.random() * (5 - 1) + 1).toFixed(2)); // $1-$5
-        await updateBalance(earnings);
-        alert(`You earned $${earnings} for watching an ad!`); // Using alert for simplicity
-        // Open one of the ad links in a new tab
-        const randomAdLink = adLinks[Math.floor(Math.random() * adLinks.length)];
-        window.open(randomAdLink, '_blank');
-    };
-
-    const handleCompleteTask = async () => {
-        const cooldownPeriod = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
-        if (Date.now() - lastAdWatchedTimestamp < cooldownPeriod) {
-            const remainingTime = lastAdWatchedTimestamp + cooldownPeriod - Date.now();
-            const hours = Math.floor(remainingTime / (1000 * 60 * 60));
-            const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
-            alert(`You can complete tasks again in ${hours}h ${minutes}m ${seconds}s.`); // Using alert for simplicity
-            return;
-        }
-
-        const earnings = parseFloat((Math.random() * (10 - 1) + 1).toFixed(2)); // $1-$10
-        await updateBalance(earnings);
-        alert(`You earned $${earnings} for completing a task!`); // Using alert for simplicity
-        // Open one of the ad links in a new tab (simulating a task)
-        const randomAdLink = adLinks[Math.floor(Math.random() * adLinks.length)];
-        window.open(randomAdLink, '_blank');
-    };
-
-    // Modals for Login, Register, Withdrawal
-    const LoginModal = () => {
-        const [email, setEmail] = useState('');
-        const [password, setPassword] = useState('');
-        const [error, setError] = useState('');
-
-        const handleLogin = async (e) => {
-            e.preventDefault();
-            setError('');
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                setShowLoginModal(false);
-            } catch (err) {
-                setError(err.message);
-            }
-        };
-
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                <div className="bg-gradient-to-br from-purple-700 to-indigo-900 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-purple-500 transform transition-all duration-300 scale-100 opacity-100 animate-slideUp">
-                    <h2 className="text-3xl font-bold text-white text-center mb-6 drop-shadow-lg">Login to Your Account</h2>
-                    <form onSubmit={handleLogin} className="space-y-6">
-                        <div>
-                            <label className="block text-white text-lg font-medium mb-2" htmlFor="email">Email</label>
-                            <input
-                                type="email"
-                                id="email"
-                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-purple-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-purple-300 transition duration-300"
-                                placeholder="your@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-white text-lg font-medium mb-2" htmlFor="password">Password</label>
-                            <input
-                                type="password"
-                                id="password"
-                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-purple-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-purple-300 transition duration-300"
-                                placeholder="********"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-                        {error && <p className="text-red-300 text-sm text-center">{error}</p>}
-                        <button
-                            type="submit"
-                            className="w-full bg-gradient-to-r from-pink-500 to-red-600 text-white font-bold py-3 px-6 rounded-xl hover:from-pink-600 hover:to-red-700 transition duration-300 shadow-lg transform hover:scale-105"
-                        >
-                            <LogIn className="inline-block mr-2" size={20} /> Login
-                        </button>
-                    </form>
-                    <p className="text-center text-white text-sm mt-6">
-                        Don't have an account?{' '}
-                        <button
-                            onClick={() => { setShowLoginModal(false); setShowRegisterModal(true); }}
-                            className="text-purple-300 hover:text-purple-200 font-semibold transition duration-300"
-                        >
-                            Register here
-                        </button>
-                    </p>
-                    <button
-                        onClick={() => setShowLoginModal(false)}
-                        className="absolute top-4 right-4 text-white hover:text-gray-200 text-2xl"
-                    >
-                        &times;
-                    </button>
-                </div>
-            </div>
-        );
-    };
-
-    const RegisterModal = () => {
-        const [email, setEmail] = useState('');
-        const [password, setPassword] = useState('');
-        const [error, setError] = useState('');
-
-        const handleRegister = async (e) => {
-            e.preventDefault();
-            setError('');
-            try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                setShowRegisterModal(false);
-            } catch (err) {
-                setError(err.message);
-            }
-        };
-
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                <div className="bg-gradient-to-br from-purple-700 to-indigo-900 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-purple-500 transform transition-all duration-300 scale-100 opacity-100 animate-slideUp">
-                    <h2 className="text-3xl font-bold text-white text-center mb-6 drop-shadow-lg">Create New Account</h2>
-                    <form onSubmit={handleRegister} className="space-y-6">
-                        <div>
-                            <label className="block text-white text-lg font-medium mb-2" htmlFor="reg-email">Email</label>
-                            <input
-                                type="email"
-                                id="reg-email"
-                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-purple-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-purple-300 transition duration-300"
-                                placeholder="your@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-white text-lg font-medium mb-2" htmlFor="reg-password">Password</label>
-                            <input
-                                type="password"
-                                id="reg-password"
-                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-purple-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-purple-300 transition duration-300"
-                                placeholder="Minimum 6 characters"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                minLength="6"
-                                required
-                            />
-                        </div>
-                        {error && <p className="text-red-300 text-sm text-center">{error}</p>}
-                        <button
-                            type="submit"
-                            className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white font-bold py-3 px-6 rounded-xl hover:from-green-600 hover:to-teal-700 transition duration-300 shadow-lg transform hover:scale-105"
-                        >
-                            <UserPlus className="inline-block mr-2" size={20} /> Register
-                        </button>
-                    </form>
-                    <p className="text-center text-white text-sm mt-6">
-                        Already have an account?{' '}
-                        <button
-                            onClick={() => { setShowRegisterModal(false); setShowLoginModal(true); }}
-                            className="text-purple-300 hover:text-purple-200 font-semibold transition duration-300"
-                        >
-                            Login here
-                        </button>
-                    </p>
-                    <button
-                        onClick={() => setShowRegisterModal(false)}
-                        className="absolute top-4 right-4 text-white hover:text-gray-200 text-2xl"
-                    >
-                        &times;
-                    </button>
-                </div>
-            </div>
-        );
-    };
-
-    const WithdrawalModal = () => {
-        const [amount, setAmount] = useState('');
-        const [method, setMethod] = useState('paypal');
-        const [paypalEmail, setPaypalEmail] = useState('');
-        const [usdtAddress, setUsdtAddress] = useState('');
-        const [bitcoinAddress, setBitcoinAddress] = useState('');
-        const [bankName, setBankName] = useState('');
-        const [accountNumber, setAccountNumber] = useState('');
-        const [accountHolderName, setAccountHolderName] = useState('');
-        const [successMessage, setSuccessMessage] = useState('');
-        const [errorMessage, setErrorMessage] = useState('');
-
-        const handleWithdrawal = async (e) => {
-            e.preventDefault();
-            setSuccessMessage('');
-            setErrorMessage('');
-
-            const withdrawalAmount = parseFloat(amount);
-
-            if (isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
-                setErrorMessage("Please enter a valid amount.");
-                return;
-            }
-
-            if (withdrawalAmount > balance) {
-                setErrorMessage("Insufficient balance.");
-                return;
-            }
-
-            // Simulate withdrawal process
-            try {
-                if (!userId) throw new Error("User not authenticated.");
-
-                // Deduct balance from Firestore
-                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/data/profile`);
-                await updateDoc(userDocRef, {
-                    balance: balance - withdrawalAmount
-                });
-                setBalance(balance - withdrawalAmount);
-
-                // Log withdrawal request (optional, for backend tracking)
-                const withdrawalCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/data/withdrawals`);
-                await addDoc(withdrawalCollectionRef, {
-                    userId: userId,
-                    amount: withdrawalAmount,
-                    method: method,
-                    details: {
-                        paypalEmail, usdtAddress, bitcoinAddress, bankName, accountNumber, accountHolderName
-                    },
-                    timestamp: Date.now(),
-                    status: 'pending'
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("User logged in:", userId);
+                        await loadUserData(userId);
+                        updateUIForLoggedInUser();
+                    } else {
+                        userId = null;
+                        console.log("No user logged in, attempting anonymous sign-in.");
+                        await signInAnonymously(auth); // Sign in anonymously if no user
+                        // The onAuthStateChanged listener will then trigger again for the anonymous user
+                    }
                 });
 
-                setSuccessMessage(`Withdrawal of $${withdrawalAmount} via ${method} requested successfully! Please allow 24-48 hours for processing.`);
-                setAmount('');
-                setPaypalEmail('');
-                setUsdtAddress('');
-                setBitcoinAddress('');
-                setBankName('');
-                setAccountNumber('');
-                setAccountHolderName('');
+                // Attempt custom token sign-in if available
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                    console.log("Signed in with custom token.");
+                } else if (!auth.currentUser) {
+                    // If no custom token and no current user, sign in anonymously
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously.");
+                }
 
             } catch (error) {
-                setErrorMessage(`Withdrawal failed: ${error.message}`);
-                console.error("Withdrawal error:", error);
+                console.error("Error initializing Firebase or signing in:", error);
+                showMessage('Initialization Error', `Failed to initialize the app: ${error.message}`, true);
             }
         };
 
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                <div className="bg-gradient-to-br from-teal-700 to-cyan-900 p-8 rounded-2xl shadow-2xl w-full max-w-lg border border-teal-500 transform transition-all duration-300 scale-100 opacity-100 animate-slideUp">
-                    <h2 className="text-3xl font-bold text-white text-center mb-6 drop-shadow-lg">Withdraw Funds</h2>
-                    <form onSubmit={handleWithdrawal} className="space-y-6">
-                        <div>
-                            <label className="block text-white text-lg font-medium mb-2" htmlFor="withdraw-amount">Amount ($)</label>
-                            <input
-                                type="number"
-                                id="withdraw-amount"
-                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
-                                placeholder="e.g., 50.00"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                min="0.01"
-                                step="0.01"
-                                required
-                            />
-                            <p className="text-white text-sm mt-2">Current Balance: ${balance.toFixed(2)}</p>
+        // --- User Data Management ---
+        const loadUserData = async (uid) => {
+            if (!db || !uid) {
+                console.warn("loadUserData called without db or uid.");
+                return;
+            }
+            const userDocRef = doc(db, `artifacts/${__app_id}/users/${uid}/user_data/profile`);
+
+            try {
+                // Always try to set default data with merge: true first.
+                // This will create the document if it doesn't exist,
+                // or merge default values if it does.
+                const defaultUserData = {
+                    balance: 0,
+                    lastAdWatchTime: 0,
+                    adCooldownEnds: 0,
+                    adsWatchedInSession: 0,
+                    withdrawalHistory: []
+                };
+                await setDoc(userDocRef, defaultUserData, { merge: true });
+                console.log("Ensured user profile document exists/updated with defaults.");
+
+                // Now, safely get the data which should now exist
+                const docSnap = await getDoc(userDocRef);
+                let userData = docSnap.exists() ? docSnap.data() : defaultUserData; // Fallback in case getDoc somehow fails (though it shouldn't if setDoc passed)
+                console.log("User data loaded:", userData);
+
+                currentUserBalance = userData.balance || 0;
+                adCooldownEnds = userData.adCooldownEnds || 0;
+                adsWatchedInSession = userData.adsWatchedInSession || 0;
+
+                updateBalanceDisplay();
+            } catch (e) {
+                console.error("Error loading/initializing user data:", e);
+                showMessage('Data Error', 'Could not load or initialize your user data. Please ensure Firebase permissions are set up correctly.', true);
+            }
+        };
+
+        const updateUserData = async (data) => {
+            if (!db || !userId) return;
+            const userDocRef = doc(db, `artifacts/${__app_id}/users/${userId}/user_data/profile`);
+            try {
+                // Use setDoc with merge: true to handle both creation and updates
+                await setDoc(userDocRef, data, { merge: true });
+                console.log("User data updated:", data);
+            } catch (e) {
+                console.error("Error updating user data:", e);
+                showMessage('Save Error', 'Could not save your data. Please check your connection.', true);
+            }
+        };
+
+        const updateBalanceDisplay = () => {
+            userBalanceSpan.textContent = `$${currentUserBalance.toFixed(2)}`;
+        };
+
+        // --- UI State Management ---
+        const updateUIForLoggedInUser = () => {
+            heroSection.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            loginBtn.classList.add('hidden');
+            createAccountBtn.classList.add('hidden');
+            logoutBtn.classList.remove('hidden');
+            getStartedBtn.classList.add('hidden'); // Hide "Get Started"
+        };
+
+        const updateUIForLoggedOutUser = () => {
+            heroSection.classList.remove('hidden');
+            mainApp.classList.add('hidden');
+            loginBtn.classList.remove('hidden');
+            createAccountBtn.classList.remove('hidden');
+            logoutBtn.classList.add('hidden');
+            dynamicContent.classList.add('hidden');
+            currentUserBalance = 0;
+            updateBalanceDisplay();
+            clearInterval(adCountdownInterval); // Stop any running countdown
+            adCountdownSection.classList.add('hidden'); // Ensure hidden
+        };
+
+        // --- Modals Logic ---
+        const openModal = (modal) => {
+            modal.classList.add('open');
+        };
+        const closeModal = (modal) => {
+            modal.classList.remove('open');
+        };
+
+        const showMessage = (title, message, isError = false) => {
+            messageBoxTitle.textContent = title;
+            messageBoxContent.textContent = message;
+            messageBoxTitle.className = isError ? 'text-3xl font-bold mb-4 text-red-500' : 'text-3xl font-bold mb-4 text-white';
+            openModal(messageBox);
+        };
+
+        // --- Event Listeners for UI ---
+        loginBtn.addEventListener('click', () => openModal(loginModal));
+        createAccountBtn.addEventListener('click', () => openModal(createAccountModal));
+        getStartedBtn.addEventListener('click', () => {
+            // If already logged in, show main app, otherwise open login modal
+            if (userId && auth.currentUser) {
+                updateUIForLoggedInUser();
+            } else {
+                openModal(createAccountModal);
+            }
+        });
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                updateUIForLoggedOutUser();
+                showMessage('Logged Out', 'You have been successfully logged out.');
+            } catch (error) {
+                console.error("Error logging out:", error);
+                showMessage('Logout Error', `Failed to log out: ${error.message}`, true);
+            }
+        });
+
+        // Close modals
+        document.getElementById('closeLoginModal').addEventListener('click', () => closeModal(loginModal));
+        document.getElementById('closeCreateAccountModal').addEventListener('click', () => closeModal(createAccountModal));
+        document.getElementById('closeWithdrawalModal').addEventListener('click', () => {
+            closeModal(withdrawalModal);
+            // Reset withdrawal method fields
+            paypalFields.classList.add('hidden');
+            usdtFields.classList.add('hidden');
+            bitcoinFields.classList.add('hidden');
+            bankFields.classList.add('hidden');
+            withdrawalForm.reset();
+        });
+        document.getElementById('closeMessageBox').addEventListener('click', () => closeModal(messageBox));
+
+        // Switch between login/create account modals
+        document.getElementById('switchToCreateAccount').addEventListener('click', (e) => {
+            e.preventDefault();
+            closeModal(loginModal);
+            openModal(createAccountModal);
+        });
+        document.getElementById('switchToLogin').addEventListener('click', (e) => {
+            e.preventDefault();
+            closeModal(createAccountModal);
+            openModal(loginModal);
+        });
+
+        // --- Form Submissions ---
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+            // Simplified for frontend demo: A real app would authenticate here.
+            // For this demo, we'll just simulate success and sign in anonymously.
+            try {
+                // In a real app: await signInWithEmailAndPassword(auth, email, password);
+                // For this demo, just sign in anonymously and update UI
+                if (!auth.currentUser) {
+                    await signInAnonymously(auth);
+                }
+                closeModal(loginModal);
+                showMessage('Login Successful', 'You are now logged in! Enjoy earning.', false);
+            } catch (error) {
+                console.error("Login failed:", error);
+                showMessage('Login Failed', 'Invalid credentials or an error occurred.', true);
+            }
+        });
+
+        createAccountForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = createUsername.value;
+            const email = createEmail.value;
+            const password = createPassword.value;
+            // Simplified for frontend demo: A real app would register user here.
+            // For this demo, we'll just simulate success and sign in anonymously.
+            try {
+                // In a real app: await createUserWithEmailAndPassword(auth, email, password);
+                if (!auth.currentUser) {
+                    await signInAnonymously(auth); // Create an anonymous user to get a UID
+                }
+                // Initialize user profile in Firestore using setDoc with merge: true
+                await setDoc(doc(db, `artifacts/${__app_id}/users/${auth.currentUser.uid}/user_data/profile`), {
+                    username: username,
+                    email: email,
+                    balance: 0,
+                    lastAdWatchTime: 0,
+                    adCooldownEnds: 0,
+                    adsWatchedInSession: 0,
+                    withdrawalHistory: []
+                }, { merge: true }); // Use merge: true for safe creation/update
+
+                closeModal(createAccountModal);
+                showMessage('Account Created!', 'Your account has been successfully created. Welcome to AdEarn!', false);
+            } catch (error) {
+                console.error("Account creation failed:", error);
+                showMessage('Creation Failed', `Failed to create account: ${error.message}`, true);
+            }
+        });
+
+        // Show/hide withdrawal fields based on method
+        withdrawalMethodSelect.addEventListener('change', () => {
+            const method = withdrawalMethodSelect.value;
+            paypalFields.classList.add('hidden');
+            usdtFields.classList.add('hidden');
+            bitcoinFields.classList.add('hidden');
+            bankFields.classList.add('hidden');
+
+            if (method === 'paypal') {
+                paypalFields.classList.remove('hidden');
+            } else if (method === 'usdt') {
+                usdtFields.classList.remove('hidden');
+            } else if (method === 'bitcoin') {
+                usdtFields.classList.add('hidden'); // This was a bug in previous version, should hide usdt fields
+                bitcoinFields.classList.remove('hidden');
+            } else if (method === 'bank') {
+                bankFields.classList.remove('hidden');
+            }
+        });
+
+        withdrawalForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('withdrawalAmount').value);
+            const method = withdrawalMethodSelect.value;
+
+            if (amount <= 0 || isNaN(amount)) {
+                showMessage('Invalid Amount', 'Please enter a valid withdrawal amount.', true);
+                return;
+            }
+            if (amount > currentUserBalance) {
+                showMessage('Insufficient Balance', `You only have $${currentUserBalance.toFixed(2)}.`, true);
+                return;
+            }
+
+            // Collect method-specific details
+            let details = {};
+            if (method === 'paypal') {
+                details.email = document.getElementById('paypalEmail').value;
+                if (!details.email) { showMessage('Missing Info', 'Please enter your PayPal email.', true); return; }
+            } else if (method === 'usdt') {
+                details.address = document.getElementById('usdtAddress').value;
+                if (!details.address) { showMessage('Missing Info', 'Please enter your USDT wallet address.', true); return; }
+            } else if (method === 'bitcoin') {
+                details.address = document.getElementById('bitcoinAddress').value;
+                if (!details.address) { showMessage('Missing Info', 'Please enter your Bitcoin wallet address.', true); return; }
+            } else if (method === 'bank') {
+                details.bankName = document.getElementById('bankName').value;
+                details.accountHolderName = document.getElementById('accountHolderName').value;
+                details.accountNumber = document.getElementById('accountNumber').value;
+                if (!details.bankName || !details.accountHolderName || !details.accountNumber) {
+                    showMessage('Missing Info', 'Please fill all bank transfer details.', true); return;
+                }
+            } else {
+                showMessage('Invalid Method', 'Please select a withdrawal method.', true); return;
+            }
+
+            try {
+                const newBalance = currentUserBalance - amount;
+                const withdrawalEntry = {
+                    amount: amount,
+                    method: method,
+                    details: details,
+                    timestamp: Date.now(),
+                    status: 'Pending'
+                };
+
+                // Get current withdrawal history, append new entry, then update
+                const userProfileDoc = await getDoc(doc(db, `artifacts/${__app_id}/users/${userId}/user_data/profile`));
+                const currentWithdrawalHistory = userProfileDoc.exists() ? userProfileDoc.data().withdrawalHistory || [] : [];
+                
+                await updateUserData({
+                    balance: newBalance,
+                    withdrawalHistory: [ ...currentWithdrawalHistory, withdrawalEntry]
+                });
+                currentUserBalance = newBalance;
+                updateBalanceDisplay();
+                closeModal(withdrawalModal);
+                showMessage('Withdrawal Submitted', `Your request for $${amount.toFixed(2)} via ${method} has been submitted. It will be processed soon!`);
+
+                // Trigger a simulated withdrawal notification
+                simulateWithdrawalNotification(Math.round(amount), userId);
+
+            } catch (error) {
+                console.error("Withdrawal failed:", error);
+                showMessage('Withdrawal Error', `Failed to process withdrawal: ${error.message}`, true);
+            }
+        });
+
+
+        // --- Core App Functionality ---
+        const loadWatchAdsContent = () => {
+            dynamicContent.classList.remove('hidden');
+            dynamicContent.innerHTML = `
+                <div class="figma-card p-8">
+                    <h3 class="text-4xl font-bold text-white mb-8 text-center">Watch Ads & Earn!</h3>
+                    <p class="text-gray-400 text-center mb-6">Click on an ad link below. After viewing, click 'Claim Reward' to earn. Only 1-5$ per ad.</p>
+                    <div id="adWatchArea" class="space-y-6">
+                        ${adLinks.map((link, index) => `
+                            <div class="bg-gray-800 p-6 rounded-xl flex items-center justify-between shadow-lg">
+                                <div>
+                                    <h4 class="text-xl font-semibold text-white mb-2">Ad #${index + 1}</h4>
+                                    <p class="text-gray-400 text-sm truncate">${link}</p>
+                                </div>
+                                <button class="btn-primary watch-ad-btn" data-link="${link}" data-ad-index="${index}">
+                                    Watch Ad
+                                </button>
+                                <button class="btn-primary bg-green-600 hover:bg-green-700 claim-ad-btn hidden" data-ad-index="${index}">
+                                    Claim Reward
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div id="adSessionMessage" class="text-center text-lg mt-8 text-red-400 font-semibold hidden">
+                        You have watched your maximum ads for this session. Please wait for the cooldown.
+                    </div>
+                </div>
+            `;
+            attachAdWatchListeners();
+            // Call these after dynamic content is loaded
+            startAdCooldownTimer();
+            updateAdWatchButtons();
+        };
+
+        const attachAdWatchListeners = () => {
+            document.querySelectorAll('.watch-ad-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    if (!userId) {
+                        showMessage('Login Required', 'Please log in or create an account to watch ads.', true);
+                        return;
+                    }
+                    if (adCooldownEnds > Date.now() || adsWatchedInSession >= MAX_ADS_PER_12_HOURS) {
+                        showMessage('Cooldown Active', `You can only watch ${MAX_ADS_PER_12_HOURS} ads every 12 hours. Please wait.`, true);
+                        return;
+                    }
+
+                    const adLink = e.target.dataset.link;
+                    const adIndex = e.target.dataset.adIndex;
+                    window.open(adLink, '_blank'); // Open ad in new tab
+
+                    e.target.disabled = true;
+                    e.target.textContent = 'Watching...';
+
+                    // Simulate ad watching time
+                    setTimeout(() => {
+                        e.target.classList.add('hidden');
+                        document.querySelector(`.claim-ad-btn[data-ad-index="${adIndex}"]`).classList.remove('hidden');
+                    }, 5000); // Simulate 5 seconds of watching
+                });
+            });
+
+            document.querySelectorAll('.claim-ad-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const adIndex = e.target.dataset.adIndex;
+                    const earnedAmount = (Math.random() * 4 + 1).toFixed(2); // $1 to $5
+                    currentUserBalance += parseFloat(earnedAmount);
+                    adsWatchedInSession++;
+
+                    const now = Date.now();
+                    let updatedCooldownEnds = adCooldownEnds;
+
+                    // If a new session starts (first ad after cooldown or initial), set new cooldown
+                    if (adsWatchedInSession === 1 && now > adCooldownEnds) {
+                        updatedCooldownEnds = now + COOLDOWN_DURATION_MS;
+                    }
+
+                    await updateUserData({
+                        balance: currentUserBalance,
+                        lastAdWatchTime: now,
+                        adCooldownEnds: updatedCooldownEnds,
+                        adsWatchedInSession: adsWatchedInSession
+                    });
+                    updateBalanceDisplay();
+                    showMessage('Ad Reward!', `You earned $${earnedAmount}! Your balance is now $${currentUserBalance.toFixed(2)}.`);
+
+                    // Disable buttons for this ad and update others
+                    e.target.disabled = true;
+                    e.target.textContent = 'Claimed!';
+                    e.target.classList.add('bg-gray-500', 'cursor-not-allowed');
+                    e.target.classList.remove('bg-green-600', 'hover:bg-green-700');
+
+                    updateAdWatchButtons(); // Re-evaluate all buttons
+                    startAdCooldownTimer(); // Ensure timer is running/updated
+
+                    // Trigger a simulated earned notification
+                    simulateEarnedNotification(parseFloat(earnedAmount));
+                });
+            });
+        };
+
+        let adCountdownInterval = null;
+        const startAdCooldownTimer = () => {
+            clearInterval(adCountdownInterval); // Clear any existing timer
+
+            const updateCountdown = () => {
+                // Re-get element references here, as dynamicContent might be re-rendered
+                const currentAdCountdownSection = document.getElementById('adCountdownSection');
+                const currentAdCountdownSpan = document.getElementById('adCountdown');
+                const currentAdSessionMessage = document.getElementById('adSessionMessage');
+
+                if (!currentAdCountdownSection || !currentAdCountdownSpan || !currentAdSessionMessage) {
+                    // Elements not available (e.g., user navigated away from 'Watch Ads' section)
+                    clearInterval(adCountdownInterval);
+                    adCountdownInterval = null;
+                    return;
+                }
+
+                const now = Date.now();
+                if (now < adCooldownEnds) {
+                    const remaining = adCooldownEnds - now;
+                    const hours = Math.floor(remaining / (1000 * 60 * 60));
+                    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+                    currentAdCountdownSpan.textContent =
+                        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    currentAdCountdownSection.classList.remove('hidden');
+                    currentAdSessionMessage.classList.remove('hidden');
+                } else {
+                    // Cooldown finished, reset adsWatchedInSession
+                    if (adsWatchedInSession > 0) { // Only reset if ads were watched in previous session
+                        updateUserData({
+                            adsWatchedInSession: 0,
+                            adCooldownEnds: 0 // Reset cooldown time
+                        });
+                        adsWatchedInSession = 0;
+                        adCooldownEnds = 0;
+                        showMessage('Ad Session Reset!', 'You can now watch ads again. Enjoy!');
+                    }
+                    currentAdCountdownSection.classList.add('hidden');
+                    currentAdSessionMessage.classList.add('hidden');
+                    updateAdWatchButtons(); // Re-enable buttons if applicable
+                    clearInterval(adCountdownInterval); // Stop timer once cooldown is over
+                    adCountdownInterval = null;
+                }
+            };
+
+            updateCountdown(); // Call immediately to set initial state
+            if (adCountdownInterval === null) { // Only set interval if not already running
+                 adCountdownInterval = setInterval(updateCountdown, 1000); // Update every second
+            }
+        };
+
+        const updateAdWatchButtons = () => {
+            const now = Date.now();
+            const canWatch = (now >= adCooldownEnds && adsWatchedInSession < MAX_ADS_PER_12_HOURS);
+            const adWatchArea = document.getElementById('adWatchArea');
+            const adSessionMessage = document.getElementById('adSessionMessage');
+
+            if (adWatchArea) {
+                adWatchArea.querySelectorAll('.watch-ad-btn').forEach(button => {
+                    button.disabled = !canWatch;
+                    button.classList.toggle('bg-gray-500', !canWatch);
+                    button.classList.toggle('cursor-not-allowed', !canWatch);
+                    button.classList.toggle('btn-primary', canWatch);
+                    button.classList.remove('hidden'); // Ensure watch button is visible
+                    button.textContent = 'Watch Ad'; // Reset text
+                });
+                adWatchArea.querySelectorAll('.claim-ad-btn').forEach(button => {
+                    button.classList.add('hidden'); // Hide claim button initially
+                });
+
+                if (adSessionMessage) { // Check if element exists before manipulating
+                    if (!canWatch) {
+                        adSessionMessage.classList.remove('hidden');
+                    } else {
+                        adSessionMessage.classList.add('hidden');
+                    }
+                }
+            }
+        };
+
+
+        const loadCompleteTaskContent = () => {
+            dynamicContent.classList.remove('hidden');
+            dynamicContent.innerHTML = `
+                <div class="figma-card p-8">
+                    <h3 class="text-4xl font-bold text-white mb-8 text-center">Complete Exciting Tasks!</h3>
+                    <p class="text-gray-400 text-center mb-6">Choose a task, complete it, and claim your reward ($1 to $10).</p>
+                    <div class="space-y-6">
+                        <!-- Example Tasks -->
+                        <div class="bg-gray-800 p-6 rounded-xl flex items-center justify-between shadow-lg">
+                            <div>
+                                <h4 class="text-xl font-semibold text-white mb-2">Survey: Your Favorite Foods</h4>
+                                <p class="text-gray-400 text-sm">Share your culinary preferences for 5 minutes.</p>
+                            </div>
+                            <button class="btn-primary complete-task-btn" data-task-id="survey1">Complete Task</button>
                         </div>
-
-                        <div>
-                            <label className="block text-white text-lg font-medium mb-2" htmlFor="withdrawal-method">Withdrawal Method</label>
-                            <select
-                                id="withdrawal-method"
-                                className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
-                                value={method}
-                                onChange={(e) => setMethod(e.target.value)}
-                            >
-                                <option value="paypal" className="bg-gray-800 text-white">PayPal</option>
-                                <option value="usdt" className="bg-gray-800 text-white">USDT (TRC-20)</option>
-                                <option value="bitcoin" className="bg-gray-800 text-white">Bitcoin</option>
-                                <option value="bank" className="bg-gray-800 text-white">Bank Transfer</option>
-                            </select>
+                        <div class="bg-gray-800 p-6 rounded-xl flex items-center justify-between shadow-lg">
+                            <div>
+                                <h4 class="text-xl font-semibold text-white mb-2">App Install: Mobile Gaming Fun</h4>
+                                <p class="text-gray-400 text-sm">Install and open a new mobile game.</p>
+                            </div>
+                            <button class="btn-primary complete-task-btn" data-task-id="appinstall1">Complete Task</button>
                         </div>
-
-                        {method === 'paypal' && (
+                        <div class="bg-gray-800 p-6 rounded-xl flex items-center justify-between shadow-lg">
                             <div>
-                                <label className="block text-white text-lg font-medium mb-2" htmlFor="paypal-email">PayPal Email</label>
-                                <input
-                                    type="email"
-                                    id="paypal-email"
-                                    className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
-                                    placeholder="your@paypal.com"
-                                    value={paypalEmail}
-                                    onChange={(e) => setPaypalEmail(e.target.value)}
-                                    required={method === 'paypal'}
-                                />
+                                <h4 class="text-xl font-semibold text-white mb-2">Video Review: Tech Gadget</h4>
+                                <p class="text-gray-400 text-sm">Watch a short video and give your feedback.</p>
                             </div>
-                        )}
-
-                        {method === 'usdt' && (
-                            <div>
-                                <label className="block text-white text-lg font-medium mb-2" htmlFor="usdt-address">USDT (TRC-20) Address</label>
-                                <input
-                                    type="text"
-                                    id="usdt-address"
-                                    className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
-                                    placeholder="TRC-20 wallet address"
-                                    value={usdtAddress}
-                                    onChange={(e) => setUsdtAddress(e.target.value)}
-                                    required={method === 'usdt'}
-                                />
-                            </div>
-                        )}
-
-                        {method === 'bitcoin' && (
-                            <div>
-                                <label className="block text-white text-lg font-medium mb-2" htmlFor="bitcoin-address">Bitcoin Address</label>
-                                <input
-                                    type="text"
-                                    id="bitcoin-address"
-                                    className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
-                                    placeholder="Bitcoin wallet address"
-                                    value={bitcoinAddress}
-                                    onChange={(e) => setBitcoinAddress(e.target.value)}
-                                    required={method === 'bitcoin'}
-                                />
-                            </div>
-                        )}
-
-                        {method === 'bank' && (
-                            <>
-                                <div>
-                                    <label className="block text-white text-lg font-medium mb-2" htmlFor="bank-name">Bank Name</label>
-                                    <select
-                                        id="bank-name"
-                                        className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
-                                        value={bankName}
-                                        onChange={(e) => setBankName(e.target.value)}
-                                        required={method === 'bank'}
-                                    >
-                                        <option value="" className="bg-gray-800 text-white">Select a Bank</option>
-                                        {bankOptions.map((bank, index) => (
-                                            <option key={index} value={bank} className="bg-gray-800 text-white">{bank}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-white text-lg font-medium mb-2" htmlFor="account-number">Account Number</label>
-                                    <input
-                                        type="text"
-                                        id="account-number"
-                                        className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
-                                        placeholder="Bank account number"
-                                        value={accountNumber}
-                                        onChange={(e) => setAccountNumber(e.target.value)}
-                                        required={method === 'bank'}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-white text-lg font-medium mb-2" htmlFor="account-holder">Account Holder Name</label>
-                                    <input
-                                        type="text"
-                                        id="account-holder"
-                                        className="w-full p-3 rounded-lg bg-white bg-opacity-20 border border-teal-400 text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-teal-300 transition duration-300"
-                                        placeholder="Account holder's full name"
-                                        value={accountHolderName}
-                                        onChange={(e) => setAccountHolderName(e.target.value)}
-                                        required={method === 'bank'}
-                                    />
-                                </div>
-                            </>
-                        )}
-
-                        {successMessage && (
-                            <div className="bg-green-600 bg-opacity-80 text-white p-3 rounded-lg flex items-center shadow-md">
-                                <CheckCircle size={20} className="mr-2" />
-                                {successMessage}
-                            </div>
-                        )}
-                        {errorMessage && (
-                            <div className="bg-red-600 bg-opacity-80 text-white p-3 rounded-lg flex items-center shadow-md">
-                                <XCircle size={20} className="mr-2" />
-                                {errorMessage}
-                            </div>
-                        )}
-
-                        <button
-                            type="submit"
-                            className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold py-3 px-6 rounded-xl hover:from-teal-600 hover:to-emerald-700 transition duration-300 shadow-lg transform hover:scale-105"
-                        >
-                            <Wallet className="inline-block mr-2" size={20} /> Withdraw
-                        </button>
-                    </form>
-                    <button
-                        onClick={() => setShowWithdrawalModal(false)}
-                        className="absolute top-4 right-4 text-white hover:text-gray-200 text-2xl"
-                    >
-                        &times;
-                    </button>
-                </div>
-            </div>
-        );
-    };
-
-
-    const DashboardContent = () => (
-        <div className="p-8 space-y-8 bg-gradient-to-br from-indigo-900 to-purple-800 rounded-2xl shadow-xl border border-indigo-700 backdrop-blur-md">
-            <h2 className="text-5xl font-extrabold text-white text-center drop-shadow-2xl animate-fadein">
-                Welcome to Your Dashboard!
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {/* Balance Card */}
-                <div className="bg-gradient-to-br from-purple-600 to-indigo-700 p-6 rounded-2xl shadow-lg border border-purple-500 transform hover:scale-105 transition duration-300 group">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-2xl font-semibold text-white group-hover:text-purple-200 transition duration-300">Your Balance</h3>
-                        <DollarSignIcon size={36} className="text-white group-hover:rotate-12 transition duration-300" />
-                    </div>
-                    <p className="text-6xl font-bold text-white tracking-wide">
-                        ${balance.toFixed(2)}
-                    </p>
-                    {userId && (
-                        <p className="text-sm text-gray-200 mt-4 break-words">User ID: {userId}</p>
-                    )}
-                </div>
-
-                {/* Watch Ads Card */}
-                <div
-                    onClick={() => handleWatchAd()}
-                    className="cursor-pointer bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-lg border border-blue-500 transform hover:scale-105 transition duration-300 group"
-                >
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-2xl font-semibold text-white group-hover:text-blue-200 transition duration-300">Watch Ads</h3>
-                        <Eye size={36} className="text-white group-hover:animate-pulse transition duration-300" />
-                    </div>
-                    <p className="text-white text-lg">Earn $1-$5 per ad.</p>
-                    <p className="text-blue-200 text-sm mt-2">Click to start earning!</p>
-                </div>
-
-                {/* Complete Task Card */}
-                <div
-                    onClick={() => handleCompleteTask()}
-                    className="cursor-pointer bg-gradient-to-br from-green-600 to-teal-700 p-6 rounded-2xl shadow-lg border border-green-500 transform hover:scale-105 transition duration-300 group"
-                >
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-2xl font-semibold text-white group-hover:text-green-200 transition duration-300">Complete Tasks</h3>
-                        <CheckCircle size={36} className="text-white group-hover:animate-bounce transition duration-300" />
-                    </div>
-                    <p className="text-white text-lg">Earn $1-$10 per task.</p>
-                    <p className="text-green-200 text-sm mt-2">More complex, higher rewards!</p>
-                </div>
-
-                {/* Withdrawal Card */}
-                <div
-                    onClick={() => setShowWithdrawalModal(true)}
-                    className="cursor-pointer bg-gradient-to-br from-red-600 to-pink-700 p-6 rounded-2xl shadow-lg border border-red-500 transform hover:scale-105 transition duration-300 group"
-                >
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-2xl font-semibold text-white group-hover:text-red-200 transition duration-300">Withdraw Funds</h3>
-                        <Wallet size={36} className="text-white group-hover:animate-spin transition duration-300" />
-                    </div>
-                    <p className="text-white text-lg">Cash out your earnings.</p>
-                    <p className="text-red-200 text-sm mt-2">PayPal, USDT, BTC, Bank.</p>
-                </div>
-            </div>
-
-            <div className="mt-8 text-center">
-                <p className="text-gray-300 text-sm italic">
-                    <Info size={16} className="inline-block mr-1" /> Ads and tasks have a 12-hour cooldown.
-                </p>
-            </div>
-        </div>
-    );
-
-    // Sidebar Navigation
-    const Sidebar = () => (
-        <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col p-6 rounded-r-2xl shadow-2xl border-r border-gray-700 h-screen overflow-y-auto">
-            <div className="flex items-center mb-10 mt-2">
-                <img src="https://placehold.co/40x40/8B5CF6/FFFFFF?text=W" alt="Logo" className="w-10 h-10 rounded-full mr-3 shadow-lg" />
-                <h1 className="text-3xl font-extrabold text-white drop-shadow-lg">Watch & Earn</h1>
-            </div>
-            <nav className="flex-grow">
-                <ul className="space-y-4">
-                    <li>
-                        <button
-                            onClick={() => setCurrentPage('dashboard')}
-                            className={`flex items-center w-full p-3 rounded-lg text-lg font-medium transition duration-300 transform hover:scale-105 ${currentPage === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-300 hover:bg-gray-700'}`}
-                        >
-                            <Home className="mr-4" size={24} /> Dashboard
-                        </button>
-                    </li>
-                    <li>
-                        <button
-                            onClick={handleWatchAd}
-                            className="flex items-center w-full p-3 rounded-lg text-lg font-medium text-gray-300 transition duration-300 transform hover:scale-105 hover:bg-gray-700"
-                        >
-                            <Eye className="mr-4" size={24} /> Watch Ads
-                        </button>
-                    </li>
-                    <li>
-                        <button
-                            onClick={handleCompleteTask}
-                            className="flex items-center w-full p-3 rounded-lg text-lg font-medium text-gray-300 transition duration-300 transform hover:scale-105 hover:bg-gray-700"
-                        >
-                            <CheckCircle className="mr-4" size={24} /> Complete Task
-                        </button>
-                    </li>
-                    <li>
-                        <button
-                            onClick={() => setShowWithdrawalModal(true)}
-                            className="flex items-center w-full p-3 rounded-lg text-lg font-medium text-gray-300 transition duration-300 transform hover:scale-105 hover:bg-gray-700"
-                        >
-                            <Wallet className="mr-4" size={24} /> Withdrawal
-                        </button>
-                    </li>
-                </ul>
-            </nav>
-            {user && (
-                <div className="mt-auto pt-6 border-t border-gray-700">
-                    <button
-                        onClick={async () => { await signOut(auth); }}
-                        className="flex items-center w-full p-3 rounded-lg text-lg font-medium text-red-400 bg-red-800 bg-opacity-30 transition duration-300 transform hover:scale-105 hover:bg-red-700 hover:text-white shadow-md"
-                    >
-                        <LogOut className="mr-4" size={24} /> Logout
-                    </button>
-                </div>
-            )}
-        </div>
-    );
-
-    // Notification Pop-ups
-    const NotificationPopup = ({ notification }) => (
-        <div className={`bg-gradient-to-r ${notification.type === 'earned' ? 'from-green-500 to-emerald-600' : 'from-blue-500 to-indigo-600'} text-white p-4 rounded-xl shadow-lg mb-3 flex items-center animate-slideInLeft transition-all duration-500 transform ease-out`}>
-            {notification.type === 'earned' ? <DollarSignIcon size={24} className="mr-3" /> : <Wallet size={24} className="mr-3" />}
-            <span className="font-semibold">{notification.message}</span>
-        </div>
-    );
-
-    const WithdrawalNotificationPopup = ({ notification }) => (
-        <div className={`bg-gradient-to-r ${notification.type === 'earned' ? 'from-green-500 to-emerald-600' : 'from-purple-500 to-pink-600'} text-white p-4 rounded-xl shadow-lg mb-3 flex items-center animate-slideInRight transition-all duration-500 transform ease-out`}>
-            {notification.type === 'earned' ? <DollarSignIcon size={24} className="mr-3" /> : <Wallet size={24} className="mr-3" />}
-            <span className="font-semibold">{notification.message}</span>
-        </div>
-    );
-
-
-    if (currentPage === 'login' || currentPage === 'register') {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black p-4 font-inter relative overflow-hidden">
-                <div className="absolute inset-0 z-0 bg-dots-pattern opacity-10"></div> {/* Background pattern */}
-                <div className="relative z-10 w-full max-w-lg bg-gray-900 bg-opacity-70 backdrop-filter backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-gray-700">
-                    <h1 className="text-5xl font-extrabold text-center text-white mb-8 drop-shadow-lg tracking-tight">
-                        <span className="text-purple-400">Watch & Earn</span> Rewards
-                    </h1>
-                    <p className="text-center text-gray-300 text-lg mb-10">
-                        Login or Register to start earning by watching ads and completing tasks.
-                    </p>
-                    <div className="space-y-6">
-                        <button
-                            onClick={() => setShowLoginModal(true)}
-                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold py-4 px-6 rounded-xl text-xl hover:from-purple-700 hover:to-indigo-800 transition duration-300 shadow-lg transform hover:scale-105 flex items-center justify-center"
-                        >
-                            <LogIn className="mr-3" size={24} /> Login
-                        </button>
-                        <button
-                            onClick={() => setShowRegisterModal(true)}
-                            className="w-full bg-gradient-to-r from-pink-600 to-red-700 text-white font-bold py-4 px-6 rounded-xl text-xl hover:from-pink-700 hover:to-red-800 transition duration-300 shadow-lg transform hover:scale-105 flex items-center justify-center"
-                        >
-                            <UserPlus className="mr-3" size={24} /> Register
-                        </button>
-                        <button
-                            onClick={async () => {
-                                try {
-                                    // Sign in anonymously and then proceed to dashboard
-                                    await signInAnonymously(auth);
-                                    // onAuthStateChanged listener will handle setting the current user and navigating to dashboard
-                                } catch (error) {
-                                    console.error("Error signing in anonymously:", error);
-                                    // Provide user feedback without using alert()
-                                    setNotificationQueue(prev => [...prev, {
-                                        id: Date.now(),
-                                        type: 'error',
-                                        message: "Could not sign in as guest. Please try again.",
-                                        amount: null,
-                                        name: null
-                                    }]);
-                                }
-                            }}
-                            className="w-full bg-gradient-to-r from-gray-600 to-gray-700 text-white font-bold py-4 px-6 rounded-xl text-xl hover:from-gray-700 hover:to-gray-800 transition duration-300 shadow-lg transform hover:scale-105 flex items-center justify-center"
-                        >
-                            <LogIn className="mr-3" size={24} /> Continue as Guest
-                        </button>
+                            <button class="btn-primary complete-task-btn" data-task-id="videoreview1">Complete Task</button>
+                        </div>
                     </div>
                 </div>
+            `;
+            document.querySelectorAll('.complete-task-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    if (!userId) {
+                        showMessage('Login Required', 'Please log in or create an account to complete tasks.', true);
+                        return;
+                    }
+                    e.target.disabled = true;
+                    e.target.textContent = 'Completing...';
+                    // Simulate task completion time
+                    setTimeout(async () => {
+                        const earnedAmount = (Math.random() * 9 + 1).toFixed(2); // $1 to $10
+                        currentUserBalance += parseFloat(earnedAmount);
+                        await updateUserData({ balance: currentUserBalance });
+                        updateBalanceDisplay();
+                        showMessage('Task Reward!', `You earned $${earnedAmount}! Your balance is now $${currentUserBalance.toFixed(2)}.`);
+                        e.target.textContent = 'Completed!';
+                        e.target.classList.add('bg-green-600', 'cursor-not-allowed');
+                        e.target.classList.remove('btn-primary');
 
-                {showLoginModal && <LoginModal />}
-                {showRegisterModal && <RegisterModal />}
-                {notificationQueue.length > 0 && notificationQueue.filter(n => n.type === 'error').map((n) => (
-                    <NotificationPopup key={n.id} notification={n} />
-                ))}
-            </div>
-        );
-    }
+                        // Trigger a simulated earned notification
+                        simulateEarnedNotification(parseFloat(earnedAmount));
 
-    return (
-        <div className="flex min-h-screen bg-gray-950 font-inter">
-            {/* Sidebar */}
-            <Sidebar />
+                    }, 3000); // Simulate 3 seconds task completion
+                });
+            });
+        };
 
-            {/* Main Content Area */}
-            <div className="flex-grow p-8 relative">
-                {/* Fixed Notification Areas */}
-                <div className="fixed top-8 left-8 z-50 pointer-events-none">
-                    {notificationQueue.map((n) => (
-                        <NotificationPopup key={n.id} notification={n} />
-                    ))}
-                </div>
-                <div className="fixed top-8 right-8 z-50 pointer-events-none">
-                    {withdrawalNotificationQueue.map((n) => (
-                        <WithdrawalNotificationPopup key={n.id} notification={n} />
-                    ))}
-                </div>
+        const loadWithdrawalContent = () => {
+            if (!userId) {
+                showMessage('Login Required', 'Please log in or create an account to withdraw funds.', true);
+                return;
+            }
+            modalBalanceSpan.textContent = `$${currentUserBalance.toFixed(2)}`;
+            openModal(withdrawalModal);
+        };
 
-                <div className="flex justify-center items-center w-full h-full">
-                    {currentPage === 'dashboard' && <DashboardContent />}
-                    {/* Other pages would go here if they had separate content components,
-                        but for this app, dashboard handles direct actions. */}
-                </div>
-            </div>
+        // --- Navigation ---
+        watchAdsBtn.addEventListener('click', loadWatchAdsContent);
+        completeTaskBtn.addEventListener('click', loadCompleteTaskContent);
+        withdrawBtn.addEventListener('click', loadWithdrawalContent);
 
-            {showWithdrawalModal && <WithdrawalModal />}
-        </div>
-    );
-};
 
-export default App;
+        // --- Live Notifications Simulation ---
+        const randomNames = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah", "Ivan", "Julia", "Kyle", "Lena", "Mike", "Nina", "Oscar", "Pamela"];
+        let notificationCounter = 0;
 
+        const showNotification = (type, name, amount) => {
+            const notificationDiv = document.createElement('div');
+            notificationDiv.classList.add('notification-item');
+            notificationDiv.style.order = notificationCounter++; // To ensure new items appear at the bottom
+
+            let icon, text;
+            if (type === 'earned') {
+                icon = '<i class="fas fa-money-bill-wave text-green-400"></i>';
+                text = `<span class="font-bold text-indigo-300">${name}</span> just earned <span class="text-green-400 font-bold">$${amount.toFixed(2)}}</span>!`;
+            } else if (type === 'withdrawal') {
+                icon = '<i class="fas fa-hand-holding-usd text-blue-400"></i>';
+                text = `<span class="font-bold text-indigo-300">${name}</span> withdrew <span class="text-blue-400 font-bold">$${amount.toFixed(2)}</span>!`;
+            }
+
+            notificationDiv.innerHTML = `${icon} ${text}`;
+
+            const targetContainer = type === 'earned' ? earnedNotificationsDiv : withdrawalNotificationsDiv;
+            targetContainer.appendChild(notificationDiv);
+
+            // Remove after animation (adjust timing to match CSS animation)
+            setTimeout(() => {
+                notificationDiv.remove();
+            }, 8000); // Corresponds to 8s animation
+        };
+
+        const simulateEarnedNotification = (fixedAmount = null) => {
+            const name = randomNames[Math.floor(Math.random() * randomNames.length)];
+            const amount = fixedAmount || (Math.random() * 2200 + 300); // $300 to $2500
+            showNotification('earned', name, amount);
+        };
+
+        const simulateWithdrawalNotification = (fixedAmount = null, currentUserId = null) => {
+            const name = randomNames[Math.floor(Math.random() * randomNames.length)];
+            const amount = fixedAmount || (Math.random() * 2000 + 500); // $500 to $2500
+            // Optionally, for a more "real" feel, use the current user's name if they just withdrew
+            if (currentUserId && auth.currentUser && auth.currentUser.uid === currentUserId) {
+                // In a real app, fetch the username from user data
+                // For this demo, just use a random name for simplicity
+            }
+            showNotification('withdrawal', name, amount);
+        };
+
+        // Start random notifications
+        setInterval(() => simulateEarnedNotification(), 10000); // Every 10 seconds
+        setInterval(() => simulateWithdrawalNotification(), 15000); // Every 15 seconds
+
+        // --- Initialize App ---
+        document.addEventListener('DOMContentLoaded', initializeFirebase);
+    </script>
+</body>
+</html>
