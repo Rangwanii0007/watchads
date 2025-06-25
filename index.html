@@ -420,7 +420,6 @@
         const createAccountBtnHero = document.getElementById('createAccountBtnHero'); // Hero create
         const continueAsGuestBtn = document.getElementById('continueAsGuestBtn'); // New Guest button
         const logoutBtn = document.getElementById('logoutBtn');
-        // const getStartedBtn = document.getElementById('getStartedBtn'); // Removed
         const mainApp = document.getElementById('mainApp');
         const heroSection = document.getElementById('hero');
         const userBalanceSpan = document.getElementById('userBalance');
@@ -428,8 +427,9 @@
         const watchAdsBtn = document.getElementById('watchAdsBtn');
         const completeTaskBtn = document.getElementById('completeTaskBtn');
         const withdrawBtn = document.getElementById('withdrawBtn');
-        const adCountdownSection = document.getElementById('adCountdownSection');
-        const adCountdownSpan = document.getElementById('adCountdown');
+        // These are dynamically created, do not get their references globally
+        // const adCountdownSection = document.getElementById('adCountdownSection');
+        // const adCountdownSpan = document.getElementById('adCountdown');
 
         // Modals
         const loginModal = document.getElementById('loginModal');
@@ -458,7 +458,7 @@
 
         // Ad Links (provided by user)
         const adLinks = [
-            "https://spendharassingwarmly.com/fvhypi3y?key=80981271a9dcafc8801d326e77a46d71",
+            "https://spendharassingwarmly.com/fvhypi3y?key=80981271a9dcafc8810d326e77a46d71",
             "https://spendharassingwarmly.com/t75wmytbb?key=310969957557de70b2985540d31a7958",
             "https://spendharassingwarmly.com/ymq7df2pms?key=f3519aaedb5f6a5f7fb946000fcacda3",
             "https://spendharassingwarmly.com/m4imbsw5q7?key=e57cfaa68be458b7f45e333ab052b13d"
@@ -487,7 +487,6 @@
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         userId = user.uid;
-                        // Load user data or initialize profile. This function will determine appState.
                         await loadUserData(userId);
                     } else {
                         userId = null;
@@ -496,15 +495,11 @@
                     }
                 });
 
-                // Initial authentication check: if a custom token exists, sign in.
-                // Otherwise, the onAuthStateChanged will set the state to 'unauthenticated'.
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                     console.log("Signed in with custom token.");
                 } else {
-                    // This will trigger onAuthStateChanged to set the initial 'unauthenticated' state
-                    // if no previous user session exists.
-                    updateUIState('unauthenticated');
+                    updateUIState('unauthenticated'); // Ensure initial state is set
                 }
 
             } catch (error) {
@@ -522,53 +517,41 @@
             const userDocRef = doc(db, `artifacts/${__app_id}/users/${uid}/user_data/profile`);
 
             try {
-                // First, check if the current user is anonymous (potential guest or new anonymous "account")
                 const user = auth.currentUser;
-                if (user && user.isAnonymous) {
-                    const docSnap = await getDoc(userDocRef);
-                    if (docSnap.exists()) {
-                        // This anonymous user has a saved profile, so treat them as 'authenticated'
-                        const data = docSnap.data();
-                        currentUserBalance = data.balance || 0;
-                        adCooldownEnds = data.adCooldownEnds || 0;
-                        adsWatchedInSession = data.adsWatchedInSession || 0;
-                        console.log("Authenticated (anonymous) user data loaded:", data);
-                        updateUIState('authenticated');
-                    } else {
-                        // This anonymous user does NOT have a saved profile, treat as 'guest'
-                        currentUserBalance = 0;
-                        adCooldownEnds = 0;
-                        adsWatchedInSession = 0;
-                        console.log("New anonymous user (guest session).");
-                        updateUIState('guest');
-                    }
-                } else {
-                    // Non-anonymous user (e.g., if email/password auth was implemented) - treat as authenticated
-                    const docSnap = await getDoc(userDocRef);
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        currentUserBalance = data.balance || 0;
-                        adCooldownEnds = data.adCooldownEnds || 0;
-                        adsWatchedInSession = data.adsWatchedInSession || 0;
-                        console.log("Non-anonymous user data loaded:", data);
-                        updateUIState('authenticated');
-                    } else {
-                        // This case shouldn't happen for non-anonymous users if they truly logged in.
-                        // For this demo, it's a fallback.
-                        console.error("Authenticated non-anonymous user without profile data. Initializing new profile.");
-                        const defaultUserData = {
-                            balance: 0,
-                            lastAdWatchTime: 0,
-                            adCooldownEnds: 0,
-                            adsWatchedInSession: 0,
-                            withdrawalHistory: []
-                        };
-                        await setDoc(userDocRef, defaultUserData, { merge: true });
-                        currentUserBalance = 0; adCooldownEnds = 0; adsWatchedInSession = 0;
-                        updateUIState('authenticated');
-                    }
-                }
+                // Default data for new profiles
+                const defaultUserData = {
+                    balance: 0,
+                    lastAdWatchTime: 0,
+                    adCooldownEnds: 0,
+                    adsWatchedInSession: 0,
+                    withdrawalHistory: []
+                };
+
+                // For any authenticated user (anonymous or otherwise), ensure a profile document exists.
+                // This resolves the "Authenticated non-anonymous user without profile data" warning
+                // by creating the doc if it's missing, or merging default values if it exists.
+                await setDoc(userDocRef, defaultUserData, { merge: true });
+                console.log("Ensured user profile document exists/updated with defaults for UID:", uid);
+
+                const docSnap = await getDoc(userDocRef);
+                let userData = docSnap.exists() ? docSnap.data() : defaultUserData;
+                console.log("User data retrieved:", userData);
+
+                currentUserBalance = userData.balance || 0;
+                adCooldownEnds = userData.adCooldownEnds || 0;
+                adsWatchedInSession = userData.adsWatchedInSession || 0;
+
                 updateBalanceDisplay();
+
+                // Determine appState based on whether this user has a *saved* profile (not just an anonymous UID)
+                if (user && user.isAnonymous && !docSnap.exists()) {
+                    // This is an anonymous user without a stored profile, means they are a guest
+                    updateUIState('guest');
+                } else {
+                    // This is a user with a stored profile (or freshly created), treat as authenticated
+                    updateUIState('authenticated');
+                }
+
             } catch (e) {
                 console.error("Error loading/initializing user data:", e);
                 showMessage('Data Error', 'Could not load or initialize your user data. Please ensure Firebase permissions are set up correctly.', true);
@@ -581,11 +564,11 @@
 
             // Only update data if the user is considered 'authenticated' (has a profile doc)
             const userDocRef = doc(db, `artifacts/${__app_id}/users/${userId}/user_data/profile`);
-            const docSnap = await getDoc(userDocRef); // Re-fetch to ensure latest state
+            const docSnap = await getDoc(userDocRef); 
 
-            if (!docSnap.exists()) {
+            if (!docSnap.exists() && appState === 'guest') {
                 console.log("Attempted to save data for a guest user without a profile. Aborting save.");
-                return; // Don't save for guests who haven't explicitly created an 'account'
+                return; 
             }
 
             try {
@@ -618,11 +601,6 @@
 
             userBalanceSpan.textContent = '$0.00'; // Reset balance display visually
 
-            // Null checks added here for dynamically loaded elements
-            if (adCountdownSection) adCountdownSection.classList.add('hidden'); // Hide ad countdown by default
-            if (document.getElementById('adSessionMessage')) document.getElementById('adSessionMessage').classList.add('hidden'); // Hide ad message
-
-
             switch (appState) {
                 case 'unauthenticated':
                     heroSection.classList.remove('hidden');
@@ -645,9 +623,6 @@
                     logoutBtn.classList.remove('hidden');
                     logoutBtn.textContent = 'Logout'; // Regular logout text
                     updateBalanceDisplay(); // Show actual balance
-                    // These will be called when user navigates to Watch Ads content
-                    // startAdCooldownTimer(); // Called inside loadWatchAdsContent now
-                    // updateAdWatchButtons(); // Called inside loadWatchAdsContent now
                     break;
             }
         };
@@ -892,8 +867,11 @@
                 updateAdWatchButtons();
             } else {
                  // Ensure these are hidden if appState is not 'authenticated'
-                 if (adCountdownSection) adCountdownSection.classList.add('hidden');
-                 if (document.getElementById('adSessionMessage')) document.getElementById('adSessionMessage').classList.add('hidden');
+                 // These elements are part of dynamicContent, so they should be selected after innerHTML is set
+                 const currentAdCountdownSection = document.getElementById('adCountdownSection');
+                 const currentAdSessionMessage = document.getElementById('adSessionMessage');
+                 if (currentAdCountdownSection) currentAdCountdownSection.classList.add('hidden');
+                 if (currentAdSessionMessage) currentAdSessionMessage.classList.add('hidden');
             }
         };
 
